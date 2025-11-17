@@ -1,6 +1,6 @@
 # QuickAdd Macros 設定手順
 
-このフォルダには、タスク管理システム用のQuickAdd Macroが含まれています。
+このフォルダには、Capacity-first用のQuickAdd Macroが含まれています。
 
 ## インストール方法
 

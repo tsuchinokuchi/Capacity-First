@@ -1,0 +1,24 @@
+# Obsidian local configuration (per-user)
+.obsidian/
+.obsidian.vimrc
+.obsidian-*/
+
+# Obsidian trash / cache artifacts
+.trash/
+.obsidian-cache/
+
+# Runtime / lock / log outputs
+.runlock/
+scripts/logs/
+
+# OS-specific metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.log
+*.tmp
+~$*
+
+

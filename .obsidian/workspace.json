@@ -11,10 +11,14 @@
             "id": "c33dae56abaaf741",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "タスク管理ダッシュボード.md",
+                "mode": "preview",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "新規タブ"
+              "title": "タスク管理ダッシュボード"
             }
           }
         ]
@@ -90,6 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "タスク管理ダッシュボード.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -99,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "バックリンク"
+              "title": "タスク管理ダッシュボードへのバックリンク"
             }
           },
           {
@@ -108,11 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "タスク管理ダッシュボード.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "アウトゴーイングリンク"
+              "title": "タスク管理ダッシュボードからのアウトゴーイングリンク"
             }
           },
           {
@@ -150,12 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "タスク管理ダッシュボード.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "アウトライン"
+              "title": "タスク管理ダッシュボードのアウトライン"
             }
           }
         ]
@@ -173,9 +180,22 @@
       "daily-notes:今日のデイリーノートを開く": false,
       "templates:テンプレートを挿入": false,
       "command-palette:コマンドパレットを開く": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "templater-obsidian:Templater": false
     }
   },
   "active": "c33dae56abaaf741",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "スケジュールテンプレート.md",
+    "タスク管理ダッシュボード.md",
+    "Phase6_設定手順.md",
+    "Phase5_設定手順.md",
+    "Phase3_設定手順.md",
+    "Phase4_設定手順.md",
+    "Phase2_設定手順_更新.md",
+    "Phase2_設定手順.md",
+    "config/quickadd_preset.json",
+    "ダッシュボードの見本品.md",
+    "📊ダッシュボード.md"
+  ]
 }

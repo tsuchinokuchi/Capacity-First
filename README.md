@@ -1,4 +1,6 @@
-# ⏱️ Time Ruler 運用ルール（タスク管理）
+# ⏱️ Capacity-first 運用ルール（タスク管理）
+
+Capacity-first（旧Time Rulerルール）は、勤務時間の容量管理を軸にタスクを整理するためのガイドです。ここでは従来のTime Ruler設定を参照しながら、必要な注意点をまとめています。
 
 ## 基本設定
 - 開始時刻: 07:00 / 終了は必要に応じて
@@ -17,6 +19,67 @@ HH:mm-HH:mm タイトル #タグ; メモ
 ## フォルダ構成
 - `テンプレート/日次.md` … 日次スケジュールのテンプレート
 - `スケジュール/YYYY-MM-DD.md` … 日別ノート（1日=1ファイル）
+
+## 必須コミュニティプラグインと設定
+
+Capacity-first の自動化とダッシュボード機能をフル活用するため、以下のプラグインを必ず有効化し、設定を済ませてください。
+
+### QuickAdd（必須）
+- **用途**: タスク追加・移動・容量チェック・プロジェクト展開など、全ての操作フローを一貫して実行する。
+- **共有プリセットで一括設定**  
+  1. QuickAddをインストールし、`設定 → QuickAdd` で **Enable API** を ON。  
+  2. **スクリプトフォルダの準備**:
+     - `.obsidian/scripts/` フォルダを作成（存在しない場合）
+     - `scripts/` と `QuickAdd Macros/` 内の全 `.js` ファイルを `.obsidian/scripts/` にコピー
+  3. 既存の `.obsidian/plugins/quickadd/data.json` をバックアップ。  
+  4. **Obsidianを完全に終了**してから、`config/quickadd_preset.json` を `.obsidian/plugins/quickadd/data.json` にコピー（上書き）。  
+  5. Obsidianを起動し、`Ctrl+P` → `QuickAdd: タスク追加` などが一覧に出れば導入完了。  
+  ※ファイルを再配布する際は `config/quickadd_preset.json` のみを提供すればよく、`.obsidian/` 内の実ファイルは引き続きGit管理外で運用できる。
+- **同梱されているChoice一覧（preset適用済）**
+
+| Choice / コマンド | 使用スクリプト | 主な用途・呼び出し元 |
+| --- | --- | --- |
+| `タスク追加` | `scripts/タスク追加.js` または `QuickAdd Macros/タスク追加.js` | ダッシュボード「➕ タスク追加」、日次の容量管理 |
+| `タスク移動` | `scripts/タスク移動.js` | ダッシュボード「➡️ 次の日に移動」、ボタン「次の日に移動」 |
+| `タスクプールからスケジュールに移動` | `QuickAdd Macros/タスクプールからスケジュールに移動.js` | ダッシュボード「📦 タスクプール→予定」 |
+| `繰り返しタスク展開` | `scripts/繰り返しタスク展開.js` | ダッシュボード「🔁 繰り返し展開」 |
+| `容量チェック` | `scripts/容量チェック.js` | スケジュールテンプレ内の「容量チェック」ボタン |
+| `タスク完了` | `QuickAdd Macros/タスク完了.js` | 任意のタスク完了処理 |
+| `タスク削除` | `QuickAdd Macros/タスク削除.js` | 誤登録タスクの削除 |
+| `プロジェクト作成` | `scripts/プロジェクト作成.js` | プロジェクトファイル自動生成 |
+| `サブタスク追加` | `scripts/サブタスク追加.js` | プロジェクトファイル内ボタン「➕ サブタスク追加」 |
+| `サブタスク展開` | `scripts/サブタスク展開.js` | サブタスクを出勤日に配分 |
+| `進捗更新` | `scripts/進捗更新.js` | プロジェクト進捗率を再計算 |
+
+> QuickAdd の詳細なセットアップ手順は `Phase2_設定手順_更新.md` を参照してください。
+
+### Tasks（必須）
+- **用途**: `⏱️` や `📅` を含むタスクの解析、完了管理。
+- **設定ポイント**  
+  - `設定 → Tasks → カスタムフィールド` に以下を追加  
+    - **Name**: Duration / **表示ラベル**: `⏱️` / **Type**: Number / **Unit**: `分`  
+  - `Default date format` を `YYYY-MM-DD` に統一（スケジュールファイルと合わせる）。  
+  - `Global task filter` は空欄（全ファイルのタスクを集計するため）。
+
+### Dataview（必須）
+- **用途**: `タスク管理ダッシュボード.md` で容量サマリやタスク一覧を描画。
+- **設定ポイント**  
+  - `設定 → Dataview` で **Enable JavaScript Queries** と **Enable Inline JavaScript queries** を ON。  
+  - Live Preview での自動更新を有効化（`Enable dataview inline in Live Preview`）。  
+  - コマンドパレットに `Dataview: Refresh Views` をピン留めしておくと日跨ぎ時の再描画が確実。
+
+### Buttons（必須）
+- **用途**: `スケジュールテンプレート.md` やプロジェクトファイル内から QuickAdd コマンドを実行。
+- **設定ポイント**  
+  - インストールして有効化するだけでOK。  
+  - `設定 → Buttons` で「Commands」を許可済みであることを確認（デフォルトON）。  
+  - ボタン内の `action QuickAdd: xxx` が QuickAdd Choice 名と一致しているか確認。
+
+### Templater（推奨）
+- **用途**: 日次テンプレや将来的な自動展開を cron 実行する場合に使用。
+- **設定ポイント**  
+  - `Template folder location` を `03.ツェッテルカステン/030.データベース/タスク管理/テンプレート` に設定。  
+  - 必要に応じて「Trigger Templater on new file creation」を ON（デイリースケジュールを新規作成する場合）。
 
 ## 推奨タグ色（任意）
 - `#work` 青 / `#private` 緑 / `#focus` 紫 / `#move` 灰 / `#meal` 橙
