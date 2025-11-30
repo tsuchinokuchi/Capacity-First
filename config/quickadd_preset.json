@@ -12,7 +12,7 @@
           {
             "type": "UserScript",
             "name": "タスク追加",
-            "path": ".obsidian/scripts/タスク追加.js"
+            "path": "scripts/タスク追加.js"
           }
         ]
       },
@@ -30,7 +30,7 @@
           {
             "type": "UserScript",
             "name": "タスク移動",
-            "path": ".obsidian/scripts/タスク移動.js"
+            "path": "scripts/タスク移動.js"
           }
         ]
       },
@@ -48,7 +48,7 @@
           {
             "type": "UserScript",
             "name": "タスクプールからスケジュールに移動",
-            "path": ".obsidian/scripts/タスクプールからスケジュールに移動.js"
+            "path": "scripts/タスクプールからスケジュールに移動.js"
           }
         ]
       },
@@ -66,7 +66,7 @@
           {
             "type": "UserScript",
             "name": "繰り返しタスク展開",
-            "path": ".obsidian/scripts/繰り返しタスク展開.js"
+            "path": "scripts/繰り返しタスク展開.js"
           }
         ]
       },
@@ -84,7 +84,7 @@
           {
             "type": "UserScript",
             "name": "容量チェック",
-            "path": ".obsidian/scripts/容量チェック.js"
+            "path": "scripts/容量チェック.js"
           }
         ]
       },
@@ -102,7 +102,7 @@
           {
             "type": "UserScript",
             "name": "タスク完了",
-            "path": ".obsidian/scripts/タスク完了.js"
+            "path": "scripts/タスク完了.js"
           }
         ]
       },
@@ -120,7 +120,7 @@
           {
             "type": "UserScript",
             "name": "タスク削除",
-            "path": ".obsidian/scripts/タスク削除.js"
+            "path": "scripts/タスク削除.js"
           }
         ]
       },
@@ -138,7 +138,7 @@
           {
             "type": "UserScript",
             "name": "プロジェクト作成",
-            "path": ".obsidian/scripts/プロジェクト作成.js"
+            "path": "scripts/プロジェクト作成.js"
           }
         ]
       },
@@ -156,7 +156,7 @@
           {
             "type": "UserScript",
             "name": "サブタスク追加",
-            "path": ".obsidian/scripts/サブタスク追加.js"
+            "path": "scripts/サブタスク追加.js"
           }
         ]
       },
@@ -174,7 +174,7 @@
           {
             "type": "UserScript",
             "name": "サブタスク展開",
-            "path": ".obsidian/scripts/サブタスク展開.js"
+            "path": "scripts/サブタスク展開.js"
           }
         ]
       },
@@ -192,7 +192,7 @@
           {
             "type": "UserScript",
             "name": "進捗更新",
-            "path": ".obsidian/scripts/進捗更新.js"
+            "path": "scripts/進捗更新.js"
           }
         ]
       },

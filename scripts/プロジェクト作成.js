@@ -4,170 +4,190 @@
 module.exports = async (params) => {
   // QuickAddのAPIを取得
   const { app, quickAddApi } = params;
-  
+
   // 設定
-  const PROJECT_PATH = "03.ツェッテルカステン/030.データベース/タスク管理/プロジェクト";
-  const TEMPLATE_PATH = "03.ツェッテルカステン/030.データベース/タスク管理/プロジェクト/プロジェクトテンプレート.md";
-  const MAX_MONTHS = 1; // 最大1ヶ月
-  
+  const path = require('path');
+  const basePath = app.vault.adapter.basePath;
+  const configPath = path.join(basePath, 'scripts', 'config.js');
+  const Config = require(configPath);
+  const { PATHS, FILES } = Config;
+
+  const PROJECT_PATH = PATHS.PROJECT;
+  const TEMPLATE_PATH = `${PATHS.PROJECT}/プロジェクトテンプレート.md`;
+
   try {
     // 1. プロジェクト名を入力
     const projectName = await quickAddApi.inputPrompt(
       "プロジェクト名を入力してください"
     );
-    if (!projectName) {
+    if (!projectName || !projectName.trim()) {
       new Notice("プロジェクト名が入力されていません");
       return;
     }
-    
-    // ファイル名に使用できない文字を削除
-    const safeFileName = projectName.replace(/[<>:"/\\|?*]/g, '_');
-    
-    // 2. プロジェクトの説明を入力
+
+    // 2. 概要を入力（オプション）
     const description = await quickAddApi.inputPrompt(
-      "プロジェクトの説明を入力してください（任意）",
+      "プロジェクトの概要を入力してください（空白可）",
       ""
     );
-    
+
     // 3. 開始日を入力（デフォルト: 今日）
     const today = moment().format("YYYY-MM-DD");
     const startDateInput = await quickAddApi.inputPrompt(
-      "開始日を入力してください (YYYY-MM-DD)",
+      "開始日を入力してください (YYYY-MM-DD) - 空白の場合は今日",
       today
     );
-    if (!startDateInput) {
-      new Notice("開始日が入力されていません");
+    const startDate = startDateInput.trim() || today;
+
+    // 開始日の妥当性チェック
+    const startMoment = moment(startDate, "YYYY-MM-DD");
+    if (!startMoment.isValid()) {
+      new Notice("無効な開始日形式です。YYYY-MM-DD形式で入力してください");
       return;
     }
-    
-    const startDate = moment(startDateInput, "YYYY-MM-DD");
-    if (!startDate.isValid()) {
-      new Notice("無効な日付形式です。YYYY-MM-DD形式で入力してください");
-      return;
-    }
-    
+
     // 4. 終了日を入力（デフォルト: 開始日から1ヶ月後）
-    const defaultEndDate = moment(startDate).add(MAX_MONTHS, 'month').format("YYYY-MM-DD");
+    const defaultEndDate = moment(startMoment).add(1, 'month').format("YYYY-MM-DD");
     const endDateInput = await quickAddApi.inputPrompt(
-      "終了日を入力してください (YYYY-MM-DD)",
+      "終了日を入力してください (YYYY-MM-DD) - 空白の場合は開始日から1ヶ月後",
       defaultEndDate
     );
-    if (!endDateInput) {
-      new Notice("終了日が入力されていません");
+    const endDate = endDateInput.trim() || defaultEndDate;
+
+    // 終了日の妥当性チェック
+    const endMoment = moment(endDate, "YYYY-MM-DD");
+    if (!endMoment.isValid()) {
+      new Notice("無効な終了日形式です。YYYY-MM-DD形式で入力してください");
       return;
     }
-    
-    const endDate = moment(endDateInput, "YYYY-MM-DD");
-    if (!endDate.isValid()) {
-      new Notice("無効な日付形式です。YYYY-MM-DD形式で入力してください");
+
+    // 終了日が開始日より後かチェック
+    if (endMoment.isBefore(startMoment)) {
+      new Notice("終了日は開始日より後である必要があります");
       return;
     }
-    
-    // 期間チェック（最大1ヶ月）
-    const durationMonths = endDate.diff(startDate, 'months', true);
-    if (durationMonths > MAX_MONTHS) {
-      const shouldContinue = await quickAddApi.yesNoPrompt(
-        `⚠️ 期間超過警告\n\n` +
-        `開始日: ${startDate.format("YYYY-MM-DD")}\n` +
-        `終了日: ${endDate.format("YYYY-MM-DD")}\n` +
-        `期間: ${durationMonths.toFixed(1)}ヶ月（上限: ${MAX_MONTHS}ヶ月）\n\n` +
-        `このまま続行しますか？`
-      );
-      
-      if (!shouldContinue) {
-        new Notice("プロジェクトの作成をキャンセルしました");
-        return;
-      }
-    }
-    
-    // 開始日が終了日より後でないかチェック
-    if (startDate.isAfter(endDate)) {
-      new Notice("開始日が終了日より後です。正しい日付を入力してください");
-      return;
-    }
-    
-    // 5. プロジェクトファイルを作成
-    const filePath = `${PROJECT_PATH}/${safeFileName}.md`;
-    
-    // ファイルが既に存在するかチェック
+
+    // 5. ファイル名を作成（既存チェック）
+    const fileName = `${projectName}.md`;
+    const filePath = `${PROJECT_PATH}/${fileName}`;
     const existingFile = app.vault.getAbstractFileByPath(filePath);
+
     if (existingFile) {
       const shouldOverwrite = await quickAddApi.yesNoPrompt(
-        `プロジェクト「${safeFileName}」は既に存在します。\n上書きしますか？`
+        `「${projectName}」という名前のプロジェクトが既に存在します。\n上書きしますか？`
       );
-      
       if (!shouldOverwrite) {
         new Notice("プロジェクトの作成をキャンセルしました");
         return;
       }
     }
-    
-    // テンプレートを読み込む
-    const templateFile = app.vault.getAbstractFileByPath(TEMPLATE_PATH);
-    let content;
-    if (templateFile) {
-      let templateContent = await app.vault.read(templateFile);
 
-      // タイトル
-      templateContent = templateContent.replace(/^# .+$/m, `# ${projectName}`);
-
-      // 概要
-      const summaryRegex = /(## 概要\s*\n)([\s\S]*?)(\n## |\n```|$)/;
-      templateContent = templateContent.replace(summaryRegex, (_, prefix, _body, suffix) => {
-        const newBody = `${description || "プロジェクトの説明を記入してください。"}\n\n`;
-        return `${prefix}${newBody}${suffix}`;
-      });
-
-      // 期間: 開始
-      templateContent = templateContent.replace(
-        /- 開始:\s*[\d-]+/m,
-        `- 開始: ${startDate.format("YYYY-MM-DD")}`
-      );
-
-      // 期間: 終了
-      templateContent = templateContent.replace(
-        /- 終了:\s*[\d-]+（最大1ヶ月）/m,
-        `- 終了: ${endDate.format("YYYY-MM-DD")}（最大1ヶ月）`
-      );
-
-      content = templateContent;
-    } else {
-      // テンプレートが見つからない場合のフォールバック（サブタスク追加ボタン付き）
-      content = `# ${projectName}\n\n` +
-        `## 概要\n${description || "プロジェクトの説明を記入してください。"}\n\n` +
-        `## 期間\n` +
-        `- 開始: ${startDate.format("YYYY-MM-DD")}\n` +
-        `- 終了: ${endDate.format("YYYY-MM-DD")}（最大1ヶ月）\n\n` +
-        `## 進捗\n- [ ] 0%完了\n\n` +
-        `## サブタスク（1階層まで）\n\n` +
-        "```dataviewjs\n" +
-        "// QuickAdd を使ったサブタスク追加ボタン\n" +
-        "const container = dv.container;\n" +
-        "const button = document.createElement('button');\n" +
-        "button.textContent = '➕ サブタスク追加';\n" +
-        "button.className = 'mod-cta';\n" +
-        "button.onclick = () => app.commands.executeCommandById('quickadd:choice:サブタスク追加');\n" +
-        "container.appendChild(button);\n" +
-        "```\n\n" +
-        `## メモ\n`;
+    // 6. テンプレートを読み込む
+    let templateContent = "";
+    try {
+      const templateFile = app.vault.getAbstractFileByPath(TEMPLATE_PATH);
+      if (templateFile) {
+        templateContent = await app.vault.read(templateFile);
+      }
+    } catch (error) {
+      console.warn("テンプレートの読み込みに失敗しました。デフォルトテンプレートを使用します。", error);
     }
+
+    // 7. テンプレートが読み込めなかった場合はデフォルトを使用
+    if (!templateContent || templateContent.trim() === "") {
+      templateContent = `# プロジェクト名
+
+## 概要
+プロジェクトの説明を記入してください。
+
+## 期間
+- 開始: YYYY-MM-DD
+- 終了: YYYY-MM-DD（最大1ヶ月）
+
+## 進捗
+- [ ] 0%完了
+
+## サブタスク（1階層まで）
+
+\`\`\`dataviewjs
+// サブタスク追加ボタン
+const container = dv.container;
+const buttonContainer = document.createElement('div');
+buttonContainer.style.marginBottom = '15px';
+buttonContainer.style.display = 'flex';
+buttonContainer.style.gap = '10px';
+buttonContainer.style.flexWrap = 'wrap';
+
+const addButton = document.createElement('button');
+addButton.textContent = '➕ サブタスク追加';
+addButton.className = 'mod-cta';
+addButton.style.padding = '8px 16px';
+addButton.style.cursor = 'pointer';
+addButton.style.fontSize = '14px';
+addButton.onclick = async () => {
+  try {
+    const commands = app.commands.commands;
+    const commandId = Object.keys(commands).find(key => 
+      key.includes('quickadd') && commands[key].name && commands[key].name.includes('サブタスク追加')
+    );
     
-    // ファイルを作成または上書き
+    if (commandId) {
+      await app.commands.executeCommandById(commandId);
+      setTimeout(() => {
+        app.workspace.getActiveFile() && app.commands.executeCommandById('dataview:refresh-views');
+      }, 500);
+    } else {
+      const command = Object.values(commands).find(cmd => cmd.name === 'QuickAdd: サブタスク追加');
+      if (command) {
+        await app.commands.executeCommandById(command.id);
+        setTimeout(() => {
+          app.workspace.getActiveFile() && app.commands.executeCommandById('dataview:refresh-views');
+        }, 500);
+      } else {
+        new Notice('「サブタスク追加」コマンドが見つかりません。');
+      }
+    }
+  } catch (error) {
+    new Notice('エラー: ' + error.message);
+    console.error(error);
+  }
+};
+
+buttonContainer.appendChild(addButton);
+container.appendChild(buttonContainer);
+\`\`\`
+
+### サブタスク1
+- [ ] タスク1 #ジャンル ⏱️ 60 📅 YYYY-MM-DD
+- [ ] タスク2 #ジャンル ⏱️ 60 📅 YYYY-MM-DD
+
+### サブタスク2
+- [ ] タスク3 #ジャンル ⏱️ 60 📅 YYYY-MM-DD
+
+## メモ
+<!-- プロジェクトに関するメモや注意事項を記入 -->
+`;
+    }
+
+    // 8. テンプレートを置換
+    let projectContent = templateContent
+      .replace(/# プロジェクト名/g, `# ${projectName}`)
+      .replace(/プロジェクトの説明を記入してください。/g, description.trim() || "プロジェクトの説明を記入してください。")
+      .replace(/開始: YYYY-MM-DD/g, `開始: ${startDate}`)
+      .replace(/終了: YYYY-MM-DD/g, `終了: ${endDate}`);
+
+    // 8. ファイルを作成または更新
     if (existingFile) {
-      await app.vault.modify(existingFile, content);
+      await app.vault.modify(existingFile, projectContent);
+      new Notice(`✅ プロジェクト「${projectName}」を更新しました`, 3000);
     } else {
-      await app.vault.create(filePath, content);
+      const newFile = await app.vault.create(filePath, projectContent);
+      new Notice(`✅ プロジェクト「${projectName}」を作成しました`, 3000);
+
+      // 新しく作成したファイルを開く
+      await app.workspace.openLinkText(filePath, "", true);
     }
-    
-    // 成功メッセージ
-    new Notice(`✅ プロジェクト「${projectName}」を作成しました`, 3000);
-    
-    // ファイルを開く
-    const file = app.vault.getAbstractFileByPath(filePath);
-    if (file) {
-      await app.workspace.openLinkText(filePath, '', true);
-    }
-    
+
   } catch (error) {
     new Notice(`エラー: ${error.message}`);
     console.error(error);

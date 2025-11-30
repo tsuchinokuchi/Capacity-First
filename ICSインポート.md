@@ -1,13 +1,13 @@
 # 📥 Googleカレンダー（ICS）インポート
 
 以下のボタンで、ICSファイルから向こう14日分の予定を
-`03.ツェッテルカステン/030.データベース/タスク管理/スケジュール/` の日次ノートへ追記します。
+`スケジュール/` の日次ノートへ追記します。
 
-対象: `03.ツェッテルカステン/030.データベース/タスク管理/cendrillon032.marble@gmail.com.ics`
+対象: `calendar.ics`
 
 ```dataviewjs
-const icsPath = "03.ツェッテルカステン/030.データベース/タスク管理/cendrillon032.marble@gmail.com.ics";
-const outFolder = "03.ツェッテルカステン/030.データベース/タスク管理/スケジュール";
+const icsPath = "calendar.ics";
+const outFolder = "スケジュール";
 const daysForward = 30;
 
 const container = dv.container;

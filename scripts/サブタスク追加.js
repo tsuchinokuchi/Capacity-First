@@ -4,18 +4,21 @@
 module.exports = async (params) => {
   // QuickAddのAPIを取得
   const { app, quickAddApi } = params;
-  
+
   // 設定
-  const SCHEDULE_PATH = "03.ツェッテルカステン/030.データベース/タスク管理/スケジュール";
-  const CONFIG_PATH = "03.ツェッテルカステン/030.データベース/タスク管理/config/settings.json";
-  const DEFAULT_MAX_DAILY_MINUTES = 360;
+  const Config = require('./config');
+  const { PATHS, FILES, SETTINGS } = Config;
+
+  const SCHEDULE_PATH = PATHS.SCHEDULE;
+  const CONFIG_PATH = FILES.SETTINGS;
+  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES;
   let maxDailyMinutes = DEFAULT_MAX_DAILY_MINUTES;
-  
+
   async function loadSettings() {
     try {
       const configFile = app.vault.getAbstractFileByPath(CONFIG_PATH);
       if (!configFile) return;
-      
+
       const content = await app.vault.read(configFile);
       const config = JSON.parse(content);
       if (Number.isFinite(config.maxDailyMinutes)) {
@@ -25,7 +28,7 @@ module.exports = async (params) => {
       console.error("設定ファイルの読み込みエラー:", error);
     }
   }
-  
+
   // ジャンルリスト
   const GENRES = [
     "デスクワーク",
@@ -37,7 +40,7 @@ module.exports = async (params) => {
     "趣味",
     "その他プライベート"
   ];
-  
+
   // 所要時間オプション（15分単位）
   const DURATION_OPTIONS = [
     { label: "15分", value: 15 },
@@ -52,18 +55,18 @@ module.exports = async (params) => {
     { label: "300分", value: 300 },
     { label: "360分", value: 360 }
   ];
-  
+
   // ヘルパー関数: 日付のタスクを取得
   async function getDailyTasks(date) {
     const filePath = `${SCHEDULE_PATH}/${date}.md`;
     const file = app.vault.getAbstractFileByPath(filePath);
-    
+
     if (!file) return [];
-    
+
     const content = await app.vault.read(file);
     const lines = content.split('\n');
     const tasks = [];
-    
+
     for (const line of lines) {
       if (line.match(/^- \[[ x]\] .+ ⏱️ \d+/)) {
         const durationMatch = line.match(/⏱️ (\d+)/);
@@ -71,16 +74,16 @@ module.exports = async (params) => {
         tasks.push({ text: line, duration });
       }
     }
-    
+
     return tasks;
   }
-  
+
   // ヘルパー関数: 容量チェック
   async function checkCapacity(date, newDuration) {
     const tasks = await getDailyTasks(date);
     const totalMinutes = tasks.reduce((sum, t) => sum + t.duration, 0);
     const newTotal = totalMinutes + newDuration;
-    
+
     return {
       total: totalMinutes,
       available: maxDailyMinutes - totalMinutes,
@@ -88,13 +91,13 @@ module.exports = async (params) => {
       willExceed: newTotal > maxDailyMinutes
     };
   }
-  
+
   await loadSettings();
-  
+
   // タスク名を入力
   const taskName = await quickAddApi.inputPrompt('タスク名を入力してください:');
   if (!taskName) return;
-  
+
   // ジャンルを選択
   const selectedGenre = await quickAddApi.suggester(
     GENRES,
@@ -102,7 +105,7 @@ module.exports = async (params) => {
     'ジャンルを選択してください:'
   );
   if (!selectedGenre) return;
-  
+
   // 所要時間を選択
   const selectedDuration = await quickAddApi.suggester(
     DURATION_OPTIONS.map(opt => opt.label),
@@ -111,16 +114,16 @@ module.exports = async (params) => {
   );
   if (!selectedDuration) return;
   const duration = selectedDuration.value;
-  
+
   // 実施予定日を入力（必須）
   const today = moment().format("YYYY-MM-DD");
   const dateInput = await quickAddApi.inputPrompt(
     `実施予定日を入力してください (YYYY-MM-DD、空白の場合は今日: ${today}):`,
     today
   );
-  
+
   const inputDate = (dateInput && dateInput.trim()) || today;
-  
+
   // 日付の妥当性チェック
   const date = moment(inputDate, "YYYY-MM-DD");
   if (!date.isValid()) {
@@ -128,13 +131,13 @@ module.exports = async (params) => {
     return;
   }
   const dateStr = date.format("YYYY-MM-DD");
-  
+
   // 締切日を入力（オプション）
   const deadlineInput = await quickAddApi.inputPrompt(
     "締切日を入力してください (YYYY-MM-DD) - 空白の場合は締切なし",
     ""
   );
-  
+
   let deadlineStr = "";
   if (deadlineInput && deadlineInput.trim()) {
     const deadline = moment(deadlineInput.trim(), "YYYY-MM-DD");
@@ -144,10 +147,10 @@ module.exports = async (params) => {
       new Notice("無効な締切日形式です。スキップします");
     }
   }
-  
+
   // 容量チェック
   const capacity = await checkCapacity(dateStr, duration);
-  
+
   if (capacity.willExceed) {
     const shouldContinue = await quickAddApi.yesNoPrompt(
       `⚠️ 容量超過警告\n\n` +
@@ -156,35 +159,35 @@ module.exports = async (params) => {
       `上限: ${maxDailyMinutes}分\n\n` +
       `このまま続行しますか？`
     );
-    
+
     if (!shouldContinue) {
       new Notice("タスクの追加をキャンセルしました");
       return;
     }
   }
-  
+
   // 日別タスクファイルに追加
   const filePath = `${SCHEDULE_PATH}/${dateStr}.md`;
   let file = app.vault.getAbstractFileByPath(filePath);
-  
+
   // ファイルが存在しない場合は作成
   if (!file) {
     file = await app.vault.create(filePath, `## 今日のスケジュール\n\n`);
   }
-  
+
   // タスク行を作成
   const taskLine = `- [ ] ${taskName} #${selectedGenre} ⏱️ ${duration} 📅 ${dateStr}${deadlineStr}\n`;
-  
+
   // ファイルに追加
   const content = await app.vault.read(file);
   const newContent = content + taskLine;
   await app.vault.modify(file, newContent);
-  
+
   // 成功メッセージ
-  const message = capacity.willExceed 
+  const message = capacity.willExceed
     ? `✅ サブタスクを追加しました（容量超過警告あり）\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`
     : `✅ サブタスクを追加しました\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
-  
+
   new Notice(message, 3000);
 };
 

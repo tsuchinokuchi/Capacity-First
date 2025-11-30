@@ -1,4 +1,4 @@
-// QuickAdd User Script: タスク追加（容量チェック付き）
+// QuickAdd User Script: タスクプールからスケジュールに移動
 // 使い方: QuickAddの設定画面で「User Scripts」セクションから選択
 
 module.exports = async (params) => {
@@ -12,9 +12,9 @@ module.exports = async (params) => {
   const Config = require(configPath);
   const { PATHS, FILES, SETTINGS } = Config;
 
+  const TASK_POOL_PATH = "タスクプール/タスクプール.md";
   const SCHEDULE_PATH = PATHS.SCHEDULE;
   const CONFIG_PATH = FILES.SETTINGS;
-  const GENRE_CONFIG_PATH = FILES.GENRE_CONFIG;
   const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES;
   let maxDailyMinutes = DEFAULT_MAX_DAILY_MINUTES;
 
@@ -34,57 +34,27 @@ module.exports = async (params) => {
     }
   }
 
-  // ジャンルリストを設定ファイルから読み込む
-  async function loadGenres() {
-    const defaultGenres = [
-      "デスクワーク",
-      "売場作業",
-      "顧客対応",
-      "定型作業",
-      "学習",
-      "健康",
-      "趣味",
-      "その他プライベート"
-    ];
-
-    try {
-      const genreConfigFile = app.vault.getAbstractFileByPath(GENRE_CONFIG_PATH);
-      if (!genreConfigFile) {
-        return defaultGenres;
-      }
-
-      const content = await app.vault.read(genreConfigFile);
-      const genreMatch = content.match(/const TASK_GENRES = \[([\s\S]*?)\];/);
-
-      if (genreMatch) {
-        const genres = genreMatch[1]
-          .split(',')
-          .map(g => g.trim().replace(/^["']|["']$/g, ''))
-          .filter(g => g);
-
-        return genres.length > 0 ? genres : defaultGenres;
-      }
-    } catch (error) {
-      console.error("ジャンル設定の読み込みエラー:", error);
+  // ヘルパー関数: タスクプールからタスクを取得
+  async function getPoolTasks() {
+    const poolFile = app.vault.getAbstractFileByPath(TASK_POOL_PATH);
+    if (!poolFile) {
+      return [];
     }
 
-    return defaultGenres;
-  }
+    const content = await app.vault.read(poolFile);
+    const lines = content.split('\n');
+    const tasks = [];
 
-  // 所要時間オプション（15分単位）
-  const DURATION_OPTIONS = [
-    { label: "15分", value: 15 },
-    { label: "30分", value: 30 },
-    { label: "45分", value: 45 },
-    { label: "60分", value: 60 },
-    { label: "90分", value: 90 },
-    { label: "120分", value: 120 },
-    { label: "150分", value: 150 },
-    { label: "180分", value: 180 },
-    { label: "240分", value: 240 },
-    { label: "300分", value: 300 },
-    { label: "360分", value: 360 }
-  ];
+    for (const line of lines) {
+      // チェックボックス付きのタスク行を抽出
+      if (line.match(/^- \[ \] .+/)) {
+        const taskText = line.replace(/^- \[ \] /, '').trim();
+        tasks.push({ text: taskText, fullLine: line });
+      }
+    }
+
+    return tasks;
+  }
 
   // ヘルパー関数: 日付のタスクを取得
   async function getDailyTasks(date) {
@@ -125,37 +95,38 @@ module.exports = async (params) => {
   try {
     await loadSettings();
 
-    // ジャンルリストを読み込む
-    const GENRES = await loadGenres();
+    // 1. タスクプールからタスクを取得
+    const poolTasks = await getPoolTasks();
 
-    // 1. タスク名を入力
-    const taskName = await quickAddApi.inputPrompt(
-      "タスク名を入力してください"
-    );
-    if (!taskName) {
-      new Notice("タスク名が入力されていません");
+    if (poolTasks.length === 0) {
+      new Notice("タスクプールにタスクがありません");
       return;
     }
 
-    // 2. 所要時間を選択
-    const durationLabels = DURATION_OPTIONS.map(opt => opt.label);
-    const selectedDurationLabel = await quickAddApi.suggester(
-      durationLabels,
-      durationLabels
+    // 2. 移動するタスクを選択
+    const taskLabels = poolTasks.map(t => t.text);
+    const selectedTaskLabel = await quickAddApi.suggester(
+      taskLabels,
+      taskLabels
     );
-    if (!selectedDurationLabel) {
-      new Notice("所要時間が選択されていません");
+
+    if (!selectedTaskLabel) {
+      new Notice("タスクが選択されていません");
       return;
     }
-    const duration = DURATION_OPTIONS.find(opt => opt.label === selectedDurationLabel).value;
 
-    // 3. ジャンルを選択
-    const selectedGenre = await quickAddApi.suggester(
-      GENRES,
-      GENRES
-    );
-    if (!selectedGenre) {
-      new Notice("ジャンルが選択されていません");
+    const selectedTask = poolTasks.find(t => t.text === selectedTaskLabel);
+    if (!selectedTask) {
+      new Notice("選択したタスクが見つかりません");
+      return;
+    }
+
+    // 3. 所要時間を抽出（⏱️ 60 形式）
+    const durationMatch = selectedTask.text.match(/⏱️ (\d+)/);
+    const duration = durationMatch ? parseInt(durationMatch[1]) : 0;
+
+    if (duration === 0) {
+      new Notice("タスクに所要時間が設定されていません（⏱️ 形式）");
       return;
     }
 
@@ -166,10 +137,7 @@ module.exports = async (params) => {
       today
     );
 
-    // 空白の場合は今日の日付を使用
     const inputDate = dateInput.trim() || today;
-
-    // 日付の妥当性チェック
     const date = moment(inputDate, "YYYY-MM-DD");
     if (!date.isValid()) {
       new Notice("無効な日付形式です。YYYY-MM-DD形式で入力してください");
@@ -177,23 +145,7 @@ module.exports = async (params) => {
     }
     const dateStr = date.format("YYYY-MM-DD");
 
-    // 5. 締切日を入力（オプション）
-    const deadlineInput = await quickAddApi.inputPrompt(
-      "締切日を入力してください (YYYY-MM-DD) - 空白の場合は締切なし",
-      ""
-    );
-
-    let deadlineStr = "";
-    if (deadlineInput && deadlineInput.trim()) {
-      const deadline = moment(deadlineInput.trim(), "YYYY-MM-DD");
-      if (deadline.isValid()) {
-        deadlineStr = ` ⏰ ${deadline.format("YYYY-MM-DD")}`;
-      } else {
-        new Notice("無効な締切日形式です。スキップします");
-      }
-    }
-
-    // 6. 容量チェック
+    // 5. 容量チェック
     const capacity = await checkCapacity(dateStr, duration);
 
     if (capacity.willExceed) {
@@ -206,32 +158,43 @@ module.exports = async (params) => {
       );
 
       if (!shouldContinue) {
-        new Notice("タスクの追加をキャンセルしました");
+        new Notice("タスクの移動をキャンセルしました");
         return;
       }
     }
 
-    // 7. タスクを追加
+    // 6. スケジュールファイルにタスクを追加
     const filePath = `${SCHEDULE_PATH}/${dateStr}.md`;
     let file = app.vault.getAbstractFileByPath(filePath);
 
-    // ファイルが存在しない場合は作成
     if (!file) {
       file = await app.vault.create(filePath, `## 今日のスケジュール\n\n`);
     }
 
-    // タスク行を作成（締切日がある場合は追加）
-    const taskLine = `- [ ] ${taskName} #${selectedGenre} ⏱️ ${duration} 📅 ${dateStr}${deadlineStr}\n`;
+    // タスク行を作成（日付を追加）
+    let taskLine = selectedTask.text;
+    if (!taskLine.includes(`📅 ${dateStr}`)) {
+      taskLine = `- [ ] ${taskLine} 📅 ${dateStr}`;
+    } else {
+      taskLine = `- [ ] ${taskLine}`;
+    }
+    taskLine += '\n';
 
     // ファイルに追加
     const content = await app.vault.read(file);
     const newContent = content + taskLine;
     await app.vault.modify(file, newContent);
 
+    // 7. タスクプールから削除
+    const poolFile = app.vault.getAbstractFileByPath(TASK_POOL_PATH);
+    const poolContent = await app.vault.read(poolFile);
+    const newPoolContent = poolContent.replace(selectedTask.fullLine + '\n', '');
+    await app.vault.modify(poolFile, newPoolContent);
+
     // 成功メッセージ
     const message = capacity.willExceed
-      ? `✅ タスクを追加しました（容量超過警告あり）\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`
-      : `✅ タスクを追加しました\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
+      ? `✅ タスクをスケジュールに移動しました（容量超過警告あり）\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`
+      : `✅ タスクをスケジュールに移動しました\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
 
     new Notice(message, 3000);
 

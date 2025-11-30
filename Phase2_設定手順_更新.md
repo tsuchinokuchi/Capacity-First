@@ -9,11 +9,8 @@
 
 ### ステップ2: スクリプトフォルダの準備
 1. ファイルエクスプローラーで、このVaultのフォルダを開く
-2. `.obsidian/scripts/` フォルダが存在しない場合は作成
-3. `scripts/` フォルダ内の全ての `.js` ファイルを `.obsidian/scripts/` にコピー
-   - 例：`scripts/タスク追加.js` → `.obsidian/scripts/タスク追加.js`
-4. `QuickAdd Macros/` フォルダ内の `.js` ファイルも `.obsidian/scripts/` にコピー
-   - 例：`QuickAdd Macros/タスクプールからスケジュールに移動.js` → `.obsidian/scripts/タスクプールからスケジュールに移動.js`
+2. `scripts/` フォルダが存在し、中に `.js` ファイルがあることを確認
+   - 全てのスクリプトは `scripts/` フォルダに配置します（`.obsidian/scripts/` などの隠しフォルダは使用しません）。
 
 ### ステップ3: プリセットファイルの適用
 1. **Obsidianを完全に終了**（重要：設定ファイルがロックされている可能性があるため）
@@ -21,7 +18,12 @@
 3. `.obsidian/plugins/quickadd/` フォルダに移動
 4. 既存の `data.json` をバックアップ（任意の場所に `data.json.backup` として保存）
 5. コピーした `quickadd_preset.json` を `data.json` に**リネーム**して上書き
-   - または、`quickadd_preset.json` の内容を `data.json` にコピー&ペースト
+
+> [!WARNING] 既存の設定は消えます！
+> 既にQuickAddで独自のコマンドやマクロを作成している場合、この操作を行うと**全ての設定が上書きされて消えてしまいます**。
+> 既存の設定を残したい場合は、`data.json` を上書きせず、手動で必要なChoiceだけを追加するか、JSONを手動でマージしてください。
+
+6. または、`quickadd_preset.json` の内容を `data.json` にコピー&ペースト
 
 ### ステップ4: 確認
 1. Obsidianを起動
@@ -72,7 +74,7 @@
 3. スケジュールファイルに追記されていることを確認
 
 ## 5. トラブルシューティング
-- スクリプトが見つからない → `.obsidian/scripts/` / `QuickAdd Macros/` にファイルがあるか、パスが一致しているかを確認
+- スクリプトが見つからない → `scripts/` にファイルがあるか、パスが一致しているかを確認
 - コマンドが表示されない → QuickAddでプリセットを再適用し、Obsidianを再起動
 - エラー詳細を確認する場合 → `Ctrl+Shift+I` でコンソールを確認
 
