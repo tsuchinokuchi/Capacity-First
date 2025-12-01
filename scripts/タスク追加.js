@@ -162,20 +162,71 @@ module.exports = async (params) => {
     // 4. 日付を入力（デフォルト: 今日）
     const today = moment().format("YYYY-MM-DD");
     const dateInput = await quickAddApi.inputPrompt(
-      "日付を入力してください (YYYY-MM-DD) - 空白の場合は今日",
+      "日付を入力してください (YYYY-MM-DD or MM-DD) - 空白の場合は今日",
       today
     );
 
-    // 空白の場合は今日の日付を使用
-    const inputDate = dateInput.trim() || today;
+    // 日付解析ヘルパー
+    function parseDateInput(input, referenceDate) {
+      if (!input) return null;
 
-    // 日付の妥当性チェック
-    const date = moment(inputDate, "YYYY-MM-DD");
-    if (!date.isValid()) {
-      new Notice("無効な日付形式です。YYYY-MM-DD形式で入力してください");
+      // YYYY-MM-DD形式
+      if (moment(input, "YYYY-MM-DD", true).isValid()) {
+        return input;
+      }
+
+      // MM-DD, M-D, MM-D, M-DD形式 (区切り文字はハイフン、スラッシュ、ドットに対応)
+      const match = input.match(/^(\d{1,2})[-/.](\d{1,2})$/);
+      if (match) {
+        const month = parseInt(match[1]);
+        const day = parseInt(match[2]);
+        const currentYear = moment(referenceDate).year();
+
+        // とりあえず今年のその日付を作る
+        let target = moment({ year: currentYear, month: month - 1, day: day });
+
+        if (!target.isValid()) return null;
+
+        // 基準日（今日）より過去なら来年にする
+        // ただし、今日と同じ日付なら今年（今日のまま）とする
+        if (target.isBefore(moment(referenceDate).startOf('day'))) {
+          target.add(1, 'year');
+        }
+
+        return target.format("YYYY-MM-DD");
+      }
+
+      // 8桁数値 (YYYYMMDD)
+      if (input.match(/^\d{8}$/) && moment(input, "YYYYMMDD", true).isValid()) {
+        return moment(input, "YYYYMMDD").format("YYYY-MM-DD");
+      }
+
+      // 4桁数値 (MMDD)
+      if (input.match(/^\d{4}$/)) {
+        const month = parseInt(input.substring(0, 2));
+        const day = parseInt(input.substring(2, 4));
+        const currentYear = moment(referenceDate).year();
+        let target = moment({ year: currentYear, month: month - 1, day: day });
+
+        if (target.isValid()) {
+          if (target.isBefore(moment(referenceDate).startOf('day'))) {
+            target.add(1, 'year');
+          }
+          return target.format("YYYY-MM-DD");
+        }
+      }
+
+      return null;
+    }
+
+    // 空白の場合は今日の日付を使用
+    const inputDateRaw = dateInput.trim() || today;
+    const dateStr = parseDateInput(inputDateRaw, today);
+
+    if (!dateStr) {
+      new Notice(`無効な日付形式です: ${inputDateRaw}\nYYYY-MM-DD または MM-DD 形式で入力してください`);
       return;
     }
-    const dateStr = date.format("YYYY-MM-DD");
 
     // 5. 締切日を入力（オプション）
     const deadlineInput = await quickAddApi.inputPrompt(

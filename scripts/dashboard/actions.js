@@ -1,6 +1,6 @@
 const actions = [
     { name: "➕ タスク追加", command: "quickadd:choice:task-add" },
-    { name: "➡️ 次の日に移動", command: "quickadd:choice:task-move" },
+    { name: "📅 日付変更", command: "quickadd:choice:task-move" },
     { name: "🔁 繰り返し展開", command: "quickadd:choice:task-repeat-expand" }
 ];
 

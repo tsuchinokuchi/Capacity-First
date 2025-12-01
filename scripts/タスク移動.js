@@ -140,21 +140,91 @@ module.exports = async (params) => {
       return;
     }
 
-    // 次の出勤日を検索
-    const nextWorkDay = await findNextWorkDay(today);
+    // 移動先の日付を入力
+    const nextWorkDayDefault = await findNextWorkDay(today);
+    const inputDate = await quickAddApi.inputPrompt(
+      "移動先の日付 (YYYY-MM-DD)",
+      `空欄の場合は次の出勤日 (${nextWorkDayDefault || "不明"}) に移動します`,
+      ""
+    );
 
-    if (!nextWorkDay) {
-      new Notice("次の出勤日が見つかりません");
-      return;
+    // 日付解析ヘルパー
+    function parseDateInput(input, referenceDate) {
+      if (!input) return null;
+
+      // YYYY-MM-DD形式
+      if (moment(input, "YYYY-MM-DD", true).isValid()) {
+        return input;
+      }
+
+      // MM-DD, M-D, MM-D, M-DD形式 (区切り文字はハイフン、スラッシュ、ドットに対応)
+      const match = input.match(/^(\d{1,2})[-/.](\d{1,2})$/);
+      if (match) {
+        const month = parseInt(match[1]);
+        const day = parseInt(match[2]);
+        const currentYear = moment(referenceDate).year();
+
+        // とりあえず今年のその日付を作る
+        let target = moment({ year: currentYear, month: month - 1, day: day });
+
+        if (!target.isValid()) return null;
+
+        // 基準日（今日）より過去なら来年にする
+        // ただし、今日と同じ日付なら今年（今日のまま）とする
+        if (target.isBefore(moment(referenceDate).startOf('day'))) {
+          target.add(1, 'year');
+        }
+
+        return target.format("YYYY-MM-DD");
+      }
+
+      // 8桁数値 (YYYYMMDD)
+      if (input.match(/^\d{8}$/) && moment(input, "YYYYMMDD", true).isValid()) {
+        return moment(input, "YYYYMMDD").format("YYYY-MM-DD");
+      }
+
+      // 4桁数値 (MMDD)
+      if (input.match(/^\d{4}$/)) {
+        const month = parseInt(input.substring(0, 2));
+        const day = parseInt(input.substring(2, 4));
+        const currentYear = moment(referenceDate).year();
+        let target = moment({ year: currentYear, month: month - 1, day: day });
+
+        if (target.isValid()) {
+          if (target.isBefore(moment(referenceDate).startOf('day'))) {
+            target.add(1, 'year');
+          }
+          return target.format("YYYY-MM-DD");
+        }
+      }
+
+      return null;
+    }
+
+    let targetDate = inputDate;
+
+    if (!targetDate) {
+      if (!nextWorkDayDefault) {
+        new Notice("次の出勤日が見つかりません");
+        return;
+      }
+      targetDate = nextWorkDayDefault;
+    } else {
+      const parsed = parseDateInput(targetDate, today);
+      if (!parsed) {
+        new Notice(`無効な日付形式です: ${targetDate}\nYYYY-MM-DD または MM-DD 形式で入力してください。`);
+        return;
+      }
+      targetDate = parsed;
     }
 
     // 容量チェック
-    const capacity = await checkCapacity(nextWorkDay, selectedTask.duration);
+    const capacity = await checkCapacity(targetDate, selectedTask.duration);
 
     if (capacity.willExceed) {
       const shouldContinue = await quickAddApi.yesNoPrompt(
         `⚠️ 容量超過警告\n\n` +
-        `移動先: ${nextWorkDay}\n` +
+        `移動先: ${targetDate}\n` +
         `現在の使用量: ${capacity.total}分\n` +
         `追加後の使用量: ${capacity.newTotal}分\n` +
         `上限: ${maxDailyMinutes}分\n\n` +
@@ -178,7 +248,7 @@ module.exports = async (params) => {
     }
 
     // 次の日のファイルにタスクを追加
-    const nextFilePath = `${SCHEDULE_PATH}/${nextWorkDay}.md`;
+    const nextFilePath = `${SCHEDULE_PATH}/${targetDate}.md`;
     let nextFile = app.vault.getAbstractFileByPath(nextFilePath);
 
     if (!nextFile) {
@@ -188,7 +258,7 @@ module.exports = async (params) => {
     // 日付を更新したタスク行を作成
     const taskText = selectedTask.text.replace(
       /📅 \d{4}-\d{2}-\d{2}/,
-      `📅 ${nextWorkDay}`
+      `📅 ${targetDate}`
     );
 
     const nextContent = await app.vault.read(nextFile);
@@ -196,7 +266,7 @@ module.exports = async (params) => {
     await app.vault.modify(nextFile, newNextContent);
 
     // 成功メッセージ
-    new Notice(`✅ タスクを ${nextWorkDay} に移動しました`, 3000);
+    new Notice(`✅ タスクを ${targetDate} に移動しました`, 3000);
 
   } catch (error) {
     new Notice(`エラー: ${error.message}`);
