@@ -188,6 +188,7 @@
   "lastOpenFiles": [
     "ダッシュボードの見本品.md",
     "タスク管理ダッシュボード.md",
+    "scripts/dashboard/debug_paths.js",
     "スケジュール/2025-12-02.md",
     "スケジュール/2025-12-01.md",
     "スケジュール/2012-02-01.md",
@@ -211,7 +212,6 @@
     "スケジュール/2025-12-21.md",
     "スケジュール/2025-12-20.md",
     "スケジュール/2025-12-19.md",
-    "スケジュール/2025-12-18.md",
     "scripts/generate_december.js",
     "scripts/dashboard/task_pool.js",
     "scripts/dashboard/weekly_summary.js",
@@ -220,7 +220,6 @@
     "scripts/dashboard/capacity.js",
     "scripts/dashboard/actions.js",
     "scripts/dashboard/header.js",
-    "scripts/dashboard",
-    "scripts/タスクプールからスケジュールに移動.js"
+    "scripts/dashboard"
   ]
 }

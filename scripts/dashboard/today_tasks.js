@@ -360,8 +360,10 @@ async function processSelectedTasks(action) {
 
             if (action === "move_date" && targetDateStr) {
                 const targetPath = `${schedulePath}/${targetDateStr}.md`;
+                new Notice(`Debug: Target Path = ${targetPath}`); // DEBUG
                 let targetFile = app.vault.getAbstractFileByPath(targetPath);
                 if (!targetFile) {
+                    new Notice(`Debug: Creating new file at ${targetPath}`); // DEBUG
                     targetFile = await app.vault.create(targetPath, "");
                 }
                 const targetContent = await app.vault.read(targetFile);
@@ -372,6 +374,8 @@ async function processSelectedTasks(action) {
                 new Notice(`${selectedIndices.size}件のタスクを処理しました`);
             }
         }
+    } else {
+        new Notice(`エラー: ファイルが見つかりません (${tasksToProcess[0].path})`);
     }
 }
 
