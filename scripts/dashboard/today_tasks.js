@@ -305,14 +305,17 @@ async function processSelectedTasks(action) {
         else if (moment().day() === 6) nextDay = moment().add(2, 'days'); // Sat -> Mon
         const defaultDate = nextDay.format("YYYY-MM-DD");
 
-        const input = prompt("移動先の日付を入力してください (YYYY-MM-DD)\n空欄の場合は翌営業日に移動します", defaultDate);
+        const input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌営業日に移動します", defaultDate);
         if (input === null) return;
-        targetDateStr = input.trim() === "" ? defaultDate : input.trim();
 
-        if (!moment(targetDateStr, "YYYY-MM-DD", true).isValid()) {
+        const inputStr = input.trim() === "" ? defaultDate : input.trim();
+        const dateObj = moment(inputStr, ["YYYY-MM-DD", "MM-DD"], true);
+
+        if (!dateObj.isValid()) {
             new Notice("無効な日付形式です");
             return;
         }
+        targetDateStr = dateObj.format("YYYY-MM-DD");
     }
 
     if (!confirm(`${selectedIndices.size}件のタスクを${action === "delete" ? "削除" : (action === "move_date" ? "移動" : "更新")}しますか？`)) return;
