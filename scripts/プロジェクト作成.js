@@ -286,16 +286,22 @@ addSubtaskBtn.onclick = async () => {
     } else {
         // Create category at end of subtask section
         const sectionHeader = "## サブタスク（1階層まで）";
-        if (newContent.includes(sectionHeader)) {
-             newContent = newContent.replace(sectionHeader, \`\${sectionHeader}\\n\\n\${catHeader}\\n\${taskLine}\`);
+        const sectionIdx = newContent.indexOf(sectionHeader);
+        if (sectionIdx !== -1) {
+             const nextHeaderIdx = newContent.indexOf("\\n## ", sectionIdx + sectionHeader.length);
+             if (nextHeaderIdx !== -1) {
+                 newContent = newContent.substring(0, nextHeaderIdx) + \`\\n\\n\${catHeader}\\n\${taskLine}\` + newContent.substring(nextHeaderIdx);
+             } else {
+                 newContent += \`\\n\\n\${catHeader}\\n\${taskLine}\`;
+             }
         } else {
              newContent += \`\\n\\n\${catHeader}\\n\${taskLine}\`;
-        }
+    }
     }
     await app.vault.modify(activeFile, newContent);
 
     // 8. Add to Schedule
-    const schedulePath = \`03.ツェッテルカステン/030.データベース/タスク管理/スケジュール/\${dateStr}.md\`;
+    const schedulePath = \`スケジュール/\${dateStr}.md\`;
     let scheduleFile = app.vault.getAbstractFileByPath(schedulePath);
     if (!scheduleFile) scheduleFile = await app.vault.create(schedulePath, "## 今日のスケジュール\\n\\n");
     
@@ -352,14 +358,28 @@ setDateBtn.onclick = async () => {
     // Better: match by index if checkboxPrompt returns indices? No, it returns values.
     // We will iterate and match.
     
+    const tasksToRemove = []; // { date: "YYYY-MM-DD", line: "full line" }
+
     for (const selectedLine of selectedTasks) {
-        // Find the line in the ORIGINAL content (to avoid shifting issues, though we replace string)
-        // Regex to find the line and replace/add date
-        // Logic: Replace existing 📅 ... or Append 📅 ...
-        
         let newLine = selectedLine;
-        if (newLine.match(/📅 \\d{4}-\\d{2}-\\d{2}/)) {
-            newLine = newLine.replace(/📅 \\d{4}-\\d{2}-\\d{2}/, \`📅 \${dateStr}\`);
+        
+        // Check for existing date to remove from old schedule
+        const dateMatch = newLine.match(/📅 (\d{4}-\d{2}-\d{2})/);
+        if (dateMatch) {
+            const oldDate = dateMatch[1];
+            if (oldDate !== dateStr) {
+                // Ensure link is present for removal matching
+                let lineToRemove = selectedLine;
+                if (!lineToRemove.includes(\`🔗 \${activeFile.basename}\`)) {
+                    lineToRemove += \` 🔗 \${activeFile.basename}\`;
+                }
+                tasksToRemove.push({ date: oldDate, line: lineToRemove });
+            }
+        }
+
+        // Update date in line
+        if (newLine.match(/📅 \d{4}-\d{2}-\d{2}/)) {
+            newLine = newLine.replace(/📅 \d{4}-\d{2}-\d{2}/, \`📅 \${dateStr}\`);
         } else {
             newLine = \`\${newLine} 📅 \${dateStr}\`;
         }
@@ -367,7 +387,6 @@ setDateBtn.onclick = async () => {
         newContent = newContent.replace(selectedLine, newLine);
         
         // Prepare for schedule update
-        // Ensure link is present
         if (!newLine.includes(\`🔗 \${activeFile.basename}\`)) {
             newLine += \` 🔗 \${activeFile.basename}\`;
         }
@@ -376,8 +395,21 @@ setDateBtn.onclick = async () => {
 
     await app.vault.modify(activeFile, newContent);
 
+    // Remove from old schedules
+    for (const item of tasksToRemove) {
+        const oldSchedulePath = \`スケジュール/\${item.date}.md\`;
+        const oldFile = app.vault.getAbstractFileByPath(oldSchedulePath);
+        if (oldFile) {
+            const oldContent = await app.vault.read(oldFile);
+            if (oldContent.includes(item.line)) {
+                const newOldContent = oldContent.replace(item.line, "").replace(/\\\\n\\\\n\\\\n/g, "\\\\n\\\\n"); // Simple cleanup
+                await app.vault.modify(oldFile, newOldContent);
+            }
+        }
+    }
+
     // Update Schedule File
-    const schedulePath = \`03.ツェッテルカステン/030.データベース/タスク管理/スケジュール/\${dateStr}.md\`;
+    const schedulePath = \`スケジュール/\${dateStr}.md\`;
     let scheduleFile = app.vault.getAbstractFileByPath(schedulePath);
     if (!scheduleFile) scheduleFile = await app.vault.create(schedulePath, "## 今日のスケジュール\\n\\n");
     
@@ -439,4 +471,3 @@ setDateBtn.onclick = async () => {
     console.error(error);
   }
 };
-

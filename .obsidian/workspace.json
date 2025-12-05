@@ -41,6 +41,48 @@
             "state": {
               "type": "markdown",
               "state": {
+                "file": "タスク管理ダッシュボード.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "タスク管理ダッシュボード"
+            }
+          },
+          {
+            "id": "0876cc223f18a122",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "プロジェクト/あつぁう.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "あつぁう"
+            }
+          },
+          {
+            "id": "2e7f8702ea209ea3",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "プロジェクト/あつぁう.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "あつぁう"
+            }
+          },
+          {
+            "id": "98c27de6556aac69",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
                 "file": "プロジェクト/プロジェクトテンプレート.md",
                 "mode": "preview",
                 "source": false
@@ -50,7 +92,7 @@
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 4
       }
     ],
     "direction": "vertical"
@@ -213,14 +255,22 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "235860d4c4bab6cc",
+  "active": "2e7f8702ea209ea3",
   "lastOpenFiles": [
-    "プロジェクト/てすと.md",
+    "プロジェクト/プロジェクトテンプレート.md",
+    "プロジェクト/あつぁう.md",
+    "プロジェクト/あつぁう_2025-12.md",
     "タスク管理ダッシュボード.md",
+    "プロジェクト/てす.md",
+    "プロジェクト/テスト.md",
     "トラブルシューティング.md",
-    "プロジェクト/テストプロジェクト.md",
-    "scripts/dashboard/project_list.js",
+    "スケジュール/2025-12-05.md",
     "スケジュールテンプレート.md",
+    "プロジェクト/テストプロジェクト.md",
+    "プロジェクト/てすと.md",
+    "README.md",
+    "プロジェクト/README.md",
+    "scripts/dashboard/project_list.js",
     "実装プラン.md",
     "週勤務グリッド.md",
     "ダッシュボードの見本品.md",
@@ -228,7 +278,6 @@
     "ジャンル設定.md",
     "プロジェクト/月報作成.md",
     "プロジェクト/obsidianのタスク管理ツール.md",
-    "プロジェクト/プロジェクトテンプレート.md",
     "スケジュール/2025-12-04.md",
     "scripts/dashboard/debug_paths.js",
     "スケジュール/2025-12-02.md",
@@ -236,13 +285,6 @@
     "スケジュール/2012-02-01.md",
     "スケジュール/2012-01-01.md",
     "スケジュール/2025-11-30.md",
-    "スケジュール/2025-12-31.md",
-    "スケジュール/2025-12-30.md",
-    "スケジュール/2025-12-29.md",
-    "スケジュール/2025-12-28.md",
-    "スケジュール/2025-12-27.md",
-    "スケジュール/2025-12-26.md",
-    "スケジュール/2025-12-25.md",
     "scripts/generate_december.js",
     "scripts/dashboard/task_pool.js",
     "scripts/dashboard/weekly_summary.js",

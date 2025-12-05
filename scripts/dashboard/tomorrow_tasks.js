@@ -345,13 +345,12 @@ async function processSelectedTasks(action) {
             } else if (action === "move_date") {
                 movedTaskTexts.push(lineContent);
                 linesToModify.set(lineNum, null);
+                // Sync to project
+                syncProjectTask(task.text, "move_date", { newDate: targetDateStr });
             }
         });
 
-        if (action === "delete" || action === "move_date") {
-            lines = lines.filter((_, idx) => !linesToModify.has(idx) || linesToModify.get(idx) !== null);
-            modified = true;
-        } else {
+        if (action === "complete") {
             linesToModify.forEach((newContent, idx) => {
                 if (lines[idx] !== newContent) {
                     lines[idx] = newContent;
@@ -395,6 +394,84 @@ async function toggleTaskStatus(task, newStatus) {
             lines[task.line] = newLine;
             await app.vault.modify(file, lines.join("\n"));
             new Notice(`タスクを${newStatus ? "完了" : "未完了"}にしました`);
+            // Sync to project
+            await syncProjectTask(task.text, "update_status", { completed: newStatus });
         }
+    }
+}
+
+async function syncProjectTask(taskLine, action, params = {}) {
+    // Extract project name. Matches "🔗 ProjectName" at the end.
+    // We capture everything after "🔗 " until the end of the line.
+    const linkMatch = taskLine.match(/🔗\s*(.+)$/);
+    if (!linkMatch) {
+        // console.log("No project link found in task line");
+        return;
+    }
+    const projectName = linkMatch[1].trim();
+
+    // Find project file
+    const files = app.vault.getFiles();
+    // Prioritize files in "プロジェクト" folder, but fallback to any file with matching basename
+    let projectFile = files.find(f => f.basename === projectName && f.path.includes("プロジェクト"));
+    if (!projectFile) {
+        projectFile = files.find(f => f.basename === projectName);
+    }
+
+    if (!projectFile) {
+        new Notice(`Project file not found: ${projectName}`);
+        return;
+    }
+
+    const content = await app.vault.read(projectFile);
+    let lines = content.split("\n");
+    let modified = false;
+
+    // Identify the task line in the project file
+    // taskLine passed here is likely from Dataview task.text, which does NOT include the checkbox "- [ ] "
+    // But just in case, we strip it.
+    const cleanSource = taskLine.replace(/^- \[[ x]\]/, "").trim();
+
+    const targetIdx = lines.findIndex(line => {
+        // Project file lines DO have the checkbox
+        const cleanLine = line.replace(/^- \[[ x]\]/, "").trim();
+        return cleanLine === cleanSource;
+    });
+
+    if (targetIdx === -1) {
+        // new Notice(`Task not found in project: ${projectName}`);
+        return;
+    }
+
+    if (action === "update_status") {
+        const newStatus = params.completed ? "x" : " ";
+        // Only update if status is different
+        const currentLine = lines[targetIdx];
+        const currentStatusMatch = currentLine.match(/^- \[([ x])\]/);
+        const currentStatus = currentStatusMatch ? currentStatusMatch[1] : " ";
+
+        if (currentStatus !== newStatus) {
+            lines[targetIdx] = currentLine.replace(/^- \[[ x]\]/, `- [${newStatus}]`);
+            modified = true;
+        }
+    } else if (action === "delete") {
+        lines.splice(targetIdx, 1);
+        modified = true;
+    } else if (action === "move_date") {
+        const newDate = params.newDate;
+        let line = lines[targetIdx];
+        // Replace date
+        if (line.match(/📅 \d{4}-\d{2}-\d{2}/)) {
+            line = line.replace(/📅 \d{4}-\d{2}-\d{2}/, `📅 ${newDate}`);
+        } else {
+            line += ` 📅 ${newDate}`;
+        }
+        lines[targetIdx] = line;
+        modified = true;
+    }
+
+    if (modified) {
+        await app.vault.modify(projectFile, lines.join("\n"));
+        // new Notice(`Project updated: ${projectName}`);
     }
 }
