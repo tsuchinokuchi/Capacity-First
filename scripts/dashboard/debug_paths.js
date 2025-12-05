@@ -1,5 +1,6 @@
+const container = input?.container || dv.container;
 const pages = dv.pages('"スケジュール"');
-dv.paragraph(`Found ${pages.length} pages in "スケジュール"`);
+container.createEl("div", { text: `Found ${pages.length} pages in "スケジュール"` });
 
 if (pages.length > 0) {
     const firstPage = pages[0];

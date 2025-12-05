@@ -69,12 +69,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "プロジェクト/あつぁう.md",
+                "file": "タスク管理ダッシュボード.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "あつぁう"
+              "title": "タスク管理ダッシュボード"
             }
           },
           {
@@ -257,10 +257,14 @@
   },
   "active": "2e7f8702ea209ea3",
   "lastOpenFiles": [
-    "プロジェクト/プロジェクトテンプレート.md",
+    "scripts/views/dashboard.js",
     "プロジェクト/あつぁう.md",
-    "プロジェクト/あつぁう_2025-12.md",
+    "プロジェクト/プロジェクトテンプレート.md",
+    "scripts/views/project_buttons.js",
+    "scripts/views",
     "タスク管理ダッシュボード.md",
+    "実装プラン.md",
+    "プロジェクト/あつぁう_2025-12.md",
     "プロジェクト/てす.md",
     "プロジェクト/テスト.md",
     "トラブルシューティング.md",
@@ -271,7 +275,6 @@
     "README.md",
     "プロジェクト/README.md",
     "scripts/dashboard/project_list.js",
-    "実装プラン.md",
     "週勤務グリッド.md",
     "ダッシュボードの見本品.md",
     "ジャンル定義.md",
@@ -284,14 +287,11 @@
     "スケジュール/2025-12-01.md",
     "スケジュール/2012-02-01.md",
     "スケジュール/2012-01-01.md",
-    "スケジュール/2025-11-30.md",
     "scripts/generate_december.js",
     "scripts/dashboard/task_pool.js",
     "scripts/dashboard/weekly_summary.js",
     "scripts/dashboard/tomorrow_tasks.js",
     "scripts/dashboard/today_tasks.js",
-    "scripts/dashboard/capacity.js",
-    "scripts/dashboard/actions.js",
-    "scripts/dashboard/header.js"
+    "scripts/dashboard/capacity.js"
   ]
 }

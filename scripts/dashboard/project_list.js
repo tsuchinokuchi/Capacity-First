@@ -3,7 +3,7 @@ const config = {
     PROJECT_DIR: "プロジェクト"
 };
 
-const container = dv.container;
+const container = input?.container || dv.container;
 container.innerHTML = ""; // Clear previous content
 
 // --- Styles ---

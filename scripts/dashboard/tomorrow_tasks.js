@@ -31,7 +31,8 @@ const tomorrowPage = dv.page(`${schedulePath}/${tomorrow}`);
 const tasks = tomorrowPage ? tomorrowPage.file.tasks.where(t => t.text.includes("⏱️")).array() : [];
 
 // Container setup
-const container = dv.container;
+// Container setup
+const container = input?.container || dv.container;
 container.innerHTML = ""; // Clear previous content if any
 
 if (!tasks.length) {

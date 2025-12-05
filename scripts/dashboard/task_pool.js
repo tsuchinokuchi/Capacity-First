@@ -11,7 +11,8 @@ const schedulePath = config.PATHS.SCHEDULE;
 const today = moment().format("YYYY-MM-DD");
 
 // Container setup
-const container = dv.container;
+// Container setup
+const container = input?.container || dv.container;
 container.innerHTML = ""; // Clear previous content
 
 // --- Styles ---

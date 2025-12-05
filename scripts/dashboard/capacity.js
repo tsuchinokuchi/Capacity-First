@@ -61,7 +61,8 @@ if (!todayPage) {
 }
 
 
-const table = dv.container.createEl("table");
+const container = input?.container || dv.container;
+const table = container.createEl("table");
 table.style.width = "100%";
 table.style.borderCollapse = "collapse";
 table.style.marginTop = "0px";
