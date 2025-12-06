@@ -255,8 +255,12 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "2e7f8702ea209ea3",
+  "active": "f19c388110482485",
   "lastOpenFiles": [
+    "scripts/actions/create_year_schedule.js",
+    "scripts/actions",
+    "scripts/utils/schedule_manager.js",
+    "scripts/utils",
     "タスク管理ダッシュボード.md",
     "scripts/views/dashboard.js",
     "プロジェクト/あつぁう.md",
@@ -288,9 +292,6 @@
     "スケジュール/2012-02-01.md",
     "スケジュール/2012-01-01.md",
     "scripts/generate_december.js",
-    "scripts/dashboard/task_pool.js",
-    "scripts/dashboard/weekly_summary.js",
-    "scripts/dashboard/tomorrow_tasks.js",
-    "scripts/dashboard/today_tasks.js"
+    "scripts/dashboard/task_pool.js"
   ]
 }

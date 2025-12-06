@@ -27,7 +27,10 @@ try {
     }
 } catch (error) { console.error(error); }
 
-const tomorrowPage = dv.page(`${schedulePath}/${tomorrow}`);
+const tMoment = moment().add(1, 'day');
+const tYear = tMoment.format("YYYY");
+const tMonth = tMoment.format("MM");
+const tomorrowPage = dv.page(`${schedulePath}/${tYear}/${tMonth}/${tomorrow}`) || dv.page(`${schedulePath}/${tomorrow}`);
 const tasks = tomorrowPage ? tomorrowPage.file.tasks.where(t => t.text.includes("⏱️")).array() : [];
 
 // Container setup
@@ -37,7 +40,8 @@ container.innerHTML = ""; // Clear previous content if any
 
 if (!tasks.length) {
     dv.paragraph("_明日のタスクはありません_");
-    dv.paragraph(`👉 [[${schedulePath}/${tomorrow}|明日のスケジュールを開く]]`);
+    const pagePath = tomorrowPage ? tomorrowPage.file.path : `${schedulePath}/${tYear}/${tMonth}/${tomorrow}.md`;
+    dv.paragraph(`👉 [[${pagePath}|明日のスケジュールを開く]]`);
     const addBtn = container.createEl("button", { cls: "dashboard-btn primary", text: "➕ タスク追加" });
     addBtn.onclick = () => app.commands.executeCommandById("quickadd:choice:task-add");
     return;
@@ -271,7 +275,8 @@ tasks.forEach((task, index) => {
     };
 });
 
-dv.paragraph(`👉 [[${schedulePath}/${tomorrow}|明日のスケジュールを開く]]`);
+const pagePath = tomorrowPage ? tomorrowPage.file.path : `${schedulePath}/${tYear}/${tMonth}/${tomorrow}.md`;
+dv.paragraph(`👉 [[${pagePath}|明日のスケジュールを開く]]`);
 
 // --- Logic ---
 

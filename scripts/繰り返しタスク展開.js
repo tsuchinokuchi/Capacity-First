@@ -31,8 +31,13 @@ module.exports = async (params) => {
     for (let i = 0; i < days; i++) {
       const date = moment(start).add(i, 'days');
       const dateStr = date.format("YYYY-MM-DD");
-      const filePath = `${SCHEDULE_PATH}/${dateStr}.md`;
-      const file = app.vault.getAbstractFileByPath(filePath);
+      const year = date.format("YYYY");
+      const month = date.format("MM");
+      const newPath = `${SCHEDULE_PATH}/${year}/${month}/${dateStr}.md`;
+      const oldPath = `${SCHEDULE_PATH}/${dateStr}.md`;
+
+      let file = app.vault.getAbstractFileByPath(newPath);
+      if (!file) file = app.vault.getAbstractFileByPath(oldPath);
 
       if (file) {
         const content = await app.vault.read(file);
@@ -88,8 +93,13 @@ module.exports = async (params) => {
 
   // ヘルパー関数: 日付のタスクを取得
   async function getDailyTasks(date) {
-    const filePath = `${SCHEDULE_PATH}/${date}.md`;
-    const file = app.vault.getAbstractFileByPath(filePath);
+    const year = moment(date).format("YYYY");
+    const month = moment(date).format("MM");
+    const newPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
+    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+
+    let file = app.vault.getAbstractFileByPath(newPath);
+    if (!file) file = app.vault.getAbstractFileByPath(oldPath);
 
     if (!file) return [];
 
@@ -131,12 +141,21 @@ module.exports = async (params) => {
 
   // ヘルパー関数: タスクを日付に追加
   async function addTaskToDate(date, taskLine) {
-    const filePath = `${SCHEDULE_PATH}/${date}.md`;
-    let file = app.vault.getAbstractFileByPath(filePath);
+    const year = moment(date).format("YYYY");
+    const month = moment(date).format("MM");
+    const yearFolder = `${SCHEDULE_PATH}/${year}`;
+    const monthFolder = `${yearFolder}/${month}`;
+    const newPath = `${monthFolder}/${date}.md`;
+    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
 
-    // ファイルが存在しない場合は作成
+    let file = app.vault.getAbstractFileByPath(oldPath);
+    if (!file) file = app.vault.getAbstractFileByPath(newPath);
+
+    // ファイルが存在しない場合は作成 (新しい構造で)
     if (!file) {
-      file = await app.vault.create(filePath, `## 今日のスケジュール\n\n`);
+      if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
+      if (!app.vault.getAbstractFileByPath(monthFolder)) await app.vault.createFolder(monthFolder);
+      file = await app.vault.create(newPath, `## 今日のスケジュール\n\n`);
     }
 
     // 日付を更新したタスク行を作成（🔁マーカーを削除）

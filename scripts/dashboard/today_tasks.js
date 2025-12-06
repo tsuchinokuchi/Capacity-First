@@ -27,7 +27,11 @@ try {
     }
 } catch (error) { console.error(error); }
 
-const todayPage = dv.page(`${schedulePath}/${today}`);
+const year = moment().format("YYYY");
+const month = moment().format("MM");
+// Try new path first, fallback to old path if needed (or just use new path if we assume migration)
+// Let's check both or just prefer new. For now, let's construct the new path.
+const todayPage = dv.page(`${schedulePath}/${year}/${month}/${today}`) || dv.page(`${schedulePath}/${today}`);
 const tasks = todayPage ? todayPage.file.tasks.where(t => t.text.includes("⏱️")).array() : [];
 
 // Container setup
@@ -37,7 +41,8 @@ container.innerHTML = ""; // Clear previous content if any
 
 if (!tasks.length) {
     dv.paragraph("_今日のタスクはありません_");
-    dv.paragraph(`👉 [[${schedulePath}/${today}|今日のスケジュールを開く]]`);
+    const pagePath = todayPage ? todayPage.file.path : `${schedulePath}/${year}/${month}/${today}.md`;
+    dv.paragraph(`👉 [[${pagePath}|今日のスケジュールを開く]]`);
     const addBtn = container.createEl("button", { cls: "dashboard-btn primary", text: "➕ タスク追加" });
     addBtn.onclick = () => app.commands.executeCommandById("quickadd:choice:task-add");
     return;
@@ -271,7 +276,8 @@ tasks.forEach((task, index) => {
     };
 });
 
-dv.paragraph(`👉 [[${schedulePath}/${today}|今日のスケジュールを開く]]`);
+const pagePath = todayPage ? todayPage.file.path : `${schedulePath}/${year}/${month}/${today}.md`;
+dv.paragraph(`👉 [[${pagePath}|今日のスケジュールを開く]]`);
 
 // --- Logic ---
 

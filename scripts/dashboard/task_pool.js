@@ -352,10 +352,21 @@ async function processSelectedTasks(action) {
 
     // Handle Moves (Destination)
     if (action === "move_date" && targetDateStr) {
-        const targetPath = `${schedulePath}/${targetDateStr}.md`;
-        let targetFile = app.vault.getAbstractFileByPath(targetPath);
+        const targetYear = moment(targetDateStr).format("YYYY");
+        const targetMonth = moment(targetDateStr).format("MM");
+        const targetYearFolder = `${schedulePath}/${targetYear}`;
+        const targetMonthFolder = `${targetYearFolder}/${targetMonth}`;
+        const targetNewPath = `${targetMonthFolder}/${targetDateStr}.md`;
+        const targetOldPath = `${schedulePath}/${targetDateStr}.md`;
+
+        let targetFile = app.vault.getAbstractFileByPath(targetOldPath);
+        if (!targetFile) targetFile = app.vault.getAbstractFileByPath(targetNewPath);
+
         if (!targetFile) {
-            targetFile = await app.vault.create(targetPath, "");
+            // Create in new structure
+            if (!app.vault.getAbstractFileByPath(targetYearFolder)) await app.vault.createFolder(targetYearFolder);
+            if (!app.vault.getAbstractFileByPath(targetMonthFolder)) await app.vault.createFolder(targetMonthFolder);
+            targetFile = await app.vault.create(targetNewPath, "");
         }
         const targetContent = await app.vault.read(targetFile);
         const tasksText = tasksToProcess.map(t => t.text).join("\n");

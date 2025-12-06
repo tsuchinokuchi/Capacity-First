@@ -34,7 +34,9 @@ try {
     }
 } catch (error) { console.error(error); }
 
-const todayPage = dv.page(`${schedulePath}/${today}`);
+const year = moment().format("YYYY");
+const month = moment().format("MM");
+const todayPage = dv.page(`${schedulePath}/${year}/${month}/${today}`) || dv.page(`${schedulePath}/${today}`);
 const tasks = todayPage ? todayPage.file.tasks.where(t => t.text.includes("⏱️")).array() : [];
 
 let used = 0;

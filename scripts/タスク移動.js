@@ -72,8 +72,13 @@ module.exports = async (params) => {
 
   // ヘルパー関数: 日付のタスクを取得
   async function getDailyTasks(date) {
-    const filePath = `${SCHEDULE_PATH}/${date}.md`;
-    const file = app.vault.getAbstractFileByPath(filePath);
+    const year = moment(date).format("YYYY");
+    const month = moment(date).format("MM");
+    const newPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
+    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+
+    let file = app.vault.getAbstractFileByPath(newPath);
+    if (!file) file = app.vault.getAbstractFileByPath(oldPath);
 
     if (!file) return [];
 
@@ -238,8 +243,13 @@ module.exports = async (params) => {
     }
 
     // 今日のファイルからタスクを削除
-    const todayFilePath = `${SCHEDULE_PATH}/${today}.md`;
-    const todayFile = app.vault.getAbstractFileByPath(todayFilePath);
+    const todayYear = moment(today).format("YYYY");
+    const todayMonth = moment(today).format("MM");
+    const todayNewPath = `${SCHEDULE_PATH}/${todayYear}/${todayMonth}/${today}.md`;
+    const todayOldPath = `${SCHEDULE_PATH}/${today}.md`;
+
+    let todayFile = app.vault.getAbstractFileByPath(todayNewPath);
+    if (!todayFile) todayFile = app.vault.getAbstractFileByPath(todayOldPath);
     if (todayFile) {
       const todayContent = await app.vault.read(todayFile);
       const todayLines = todayContent.split('\n');
@@ -248,11 +258,20 @@ module.exports = async (params) => {
     }
 
     // 次の日のファイルにタスクを追加
-    const nextFilePath = `${SCHEDULE_PATH}/${targetDate}.md`;
-    let nextFile = app.vault.getAbstractFileByPath(nextFilePath);
+    const targetYear = moment(targetDate).format("YYYY");
+    const targetMonth = moment(targetDate).format("MM");
+    const targetYearFolder = `${SCHEDULE_PATH}/${targetYear}`;
+    const targetMonthFolder = `${targetYearFolder}/${targetMonth}`;
+    const nextNewPath = `${targetMonthFolder}/${targetDate}.md`;
+    const nextOldPath = `${SCHEDULE_PATH}/${targetDate}.md`;
+
+    let nextFile = app.vault.getAbstractFileByPath(nextOldPath);
+    if (!nextFile) nextFile = app.vault.getAbstractFileByPath(nextNewPath);
 
     if (!nextFile) {
-      nextFile = await app.vault.create(nextFilePath, `## 今日のスケジュール\n\n`);
+      if (!app.vault.getAbstractFileByPath(targetYearFolder)) await app.vault.createFolder(targetYearFolder);
+      if (!app.vault.getAbstractFileByPath(targetMonthFolder)) await app.vault.createFolder(targetMonthFolder);
+      nextFile = await app.vault.create(nextNewPath, `## 今日のスケジュール\n\n`);
     }
 
     // 日付を更新したタスク行を作成
