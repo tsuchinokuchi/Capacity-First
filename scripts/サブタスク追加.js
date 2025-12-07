@@ -58,7 +58,10 @@ module.exports = async (params) => {
 
   // ヘルパー関数: 日付のタスクを取得
   async function getDailyTasks(date) {
-    const filePath = `${SCHEDULE_PATH}/${date}.md`;
+    const d = moment(date, "YYYY-MM-DD");
+    const year = d.format("YYYY");
+    const month = d.format("MM");
+    const filePath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
     const file = app.vault.getAbstractFileByPath(filePath);
 
     if (!file) return [];
@@ -167,11 +170,19 @@ module.exports = async (params) => {
   }
 
   // 日別タスクファイルに追加
-  const filePath = `${SCHEDULE_PATH}/${dateStr}.md`;
+  const year = date.format("YYYY");
+  const month = date.format("MM");
+  const folderPath = `${SCHEDULE_PATH}/${year}/${month}`;
+  const filePath = `${folderPath}/${dateStr}.md`;
+
   let file = app.vault.getAbstractFileByPath(filePath);
 
   // ファイルが存在しない場合は作成
   if (!file) {
+    // フォルダが存在しない場合は作成
+    if (!app.vault.getAbstractFileByPath(folderPath)) {
+      await app.vault.createFolder(folderPath);
+    }
     file = await app.vault.create(filePath, `## 今日のスケジュール\n\n`);
   }
 

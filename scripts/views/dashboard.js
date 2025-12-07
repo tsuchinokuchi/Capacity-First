@@ -52,27 +52,32 @@ const adminContainer = container.createDiv();
 adminContainer.style.marginTop = "10px";
 const createYearBtn = adminContainer.createEl("button", { text: "📅 年間スケジュール作成" });
 createYearBtn.onclick = async () => {
-    const yearInput = prompt("作成する年を入力してください (例: 2026)", moment().add(1, 'year').format("YYYY"));
-    if (!yearInput) return;
+    try {
+        let yearInput;
+        if (app.plugins.plugins.quickadd && app.plugins.plugins.quickadd.api) {
+            yearInput = await app.plugins.plugins.quickadd.api.inputPrompt(
+                "作成する年を入力してください",
+                "例: 2026",
+                moment().add(1, 'year').format("YYYY")
+            );
+        } else {
+            new Notice("QuickAdd plugin is required for input.");
+            return;
+        }
 
-    const year = parseInt(yearInput);
-    if (isNaN(year)) {
-        new Notice("有効な年を入力してください");
-        return;
+        if (!yearInput) return;
+
+        const year = parseInt(yearInput);
+        if (isNaN(year)) {
+            new Notice("有効な年を入力してください");
+            return;
+        }
+
+        await dv.view("scripts/actions/create_year_schedule", { year: year });
+    } catch (e) {
+        new Notice(`Error: ${e.message}`);
+        console.error(e);
     }
-
-    // Load and run schedule manager
-    // Note: Since we are in a dataview script, we can't easily require() modules unless we use app.vault.adapter or similar.
-    // However, we can use dv.view to run a script that does the work, or just load the content and eval it (risky but works for local),
-    // OR, better, we can make schedule_manager a view or just include the logic here if it's simple enough.
-    // But we made it a module. Let's try to load it via standard CommonJS if possible, or just copy the logic?
-    // Obsidian's JS engine might not support require() for local files easily without a plugin.
-    // Let's use a dynamic import or just read the file and execute it.
-    // Actually, for simplicity in this context, let's just use the logic directly or via a helper view.
-    // Let's try to use a helper view "scripts/actions/create_year_schedule" which we will create.
-
-    // Changing approach: Call a new view to handle the action to keep dashboard clean.
-    await dv.view("scripts/actions/create_year_schedule", { year: year });
 };
 
 container.createEl("hr");

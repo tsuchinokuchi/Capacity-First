@@ -4,8 +4,8 @@
  * Handles creation of schedule folders and files.
  */
 
-const SCHEDULE_ROOT = "タスク管理/スケジュール";
-const TEMPLATE_PATH = "タスク管理/スケジュールテンプレート.md";
+const SCHEDULE_ROOT = "スケジュール";
+const TEMPLATE_PATH = "スケジュールテンプレート.md";
 
 /**
  * Creates schedule files for a given year.
