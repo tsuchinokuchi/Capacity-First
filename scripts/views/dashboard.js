@@ -39,48 +39,17 @@ const createHeader = (text, level = 2) => {
 // --- Dashboard Layout ---
 
 // 1. Title
-createHeader("📊 Capacity-first Task Dashboard", 1);
+// 1. Title - Removed to avoid duplication with Markdown H1
+// createHeader("📊 Capacity-first Task Dashboard", 1);
 
 // 2. Debug / Auto Update (Hidden or small?)
 // Keeping it as a section for now
-createHeader("⏱️ 日付と自動更新");
-const debugContainer = container.createDiv();
-await dv.view("scripts/dashboard/debug_paths", { container: debugContainer });
+// 2. Debug / Auto Update - Removed per user request
+// createHeader("⏱️ 日付と自動更新");
+// const debugContainer = container.createDiv();
+// await dv.view("scripts/dashboard/debug_paths", { container: debugContainer });
 
-// --- Admin / Tools ---
-const adminContainer = container.createDiv();
-adminContainer.style.marginTop = "10px";
-const createYearBtn = adminContainer.createEl("button", { text: "📅 年間スケジュール作成" });
-createYearBtn.onclick = async () => {
-    try {
-        let yearInput;
-        if (app.plugins.plugins.quickadd && app.plugins.plugins.quickadd.api) {
-            yearInput = await app.plugins.plugins.quickadd.api.inputPrompt(
-                "作成する年を入力してください",
-                "例: 2026",
-                moment().add(1, 'year').format("YYYY")
-            );
-        } else {
-            new Notice("QuickAdd plugin is required for input.");
-            return;
-        }
-
-        if (!yearInput) return;
-
-        const year = parseInt(yearInput);
-        if (isNaN(year)) {
-            new Notice("有効な年を入力してください");
-            return;
-        }
-
-        await dv.view("scripts/actions/create_year_schedule", { year: year });
-    } catch (e) {
-        new Notice(`Error: ${e.message}`);
-        console.error(e);
-    }
-};
-
-container.createEl("hr");
+// Admin button moved to bottom
 
 // 3. Task Pool (Collapsible)
 const poolContent = createSection("🗂 タスクプール & 期限切れ", false);
@@ -143,3 +112,38 @@ dv.paragraph(shortcuts.map(s => `- ${s}`).join("\n"), { container: shortcutsCont
 // We already created 'ul' which is empty. Let's remove 'ul' and use dv.paragraph.
 ul.remove();
 dv.paragraph(shortcuts.map(s => `- ${s}`).join("\n"));
+
+container.createEl("hr");
+
+// --- Admin / Tools --- (Moved to bottom)
+const adminContainer = container.createDiv();
+adminContainer.style.marginTop = "20px";
+const createYearBtn = adminContainer.createEl("button", { text: "📅 年間スケジュール作成" });
+createYearBtn.onclick = async () => {
+    try {
+        let yearInput;
+        if (app.plugins.plugins.quickadd && app.plugins.plugins.quickadd.api) {
+            yearInput = await app.plugins.plugins.quickadd.api.inputPrompt(
+                "作成する年を入力してください",
+                "例: 2026",
+                moment().add(1, 'year').format("YYYY")
+            );
+        } else {
+            new Notice("QuickAdd plugin is required for input.");
+            return;
+        }
+
+        if (!yearInput) return;
+
+        const year = parseInt(yearInput);
+        if (isNaN(year)) {
+            new Notice("有効な年を入力してください");
+            return;
+        }
+
+        await dv.view("scripts/actions/create_year_schedule", { year: year });
+    } catch (e) {
+        new Notice(`Error: ${e.message}`);
+        console.error(e);
+    }
+};

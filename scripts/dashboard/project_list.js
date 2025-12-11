@@ -123,17 +123,45 @@ projects.forEach(p => {
 
     // 2. Progress Bar
     const progressCell = row.insertCell();
-    progressCell.style.width = "50%";
-    const barContainer = progressCell.createDiv({ cls: "progress-bar-container" });
-    const bar = barContainer.createDiv({ cls: "progress-bar" });
-    bar.style.width = `${p.progress}%`;
+    progressCell.style.width = "40%";
+    progressCell.style.paddingRight = "10px";
+    progressCell.style.verticalAlign = "middle";
 
-    // Color coding based on progress
-    if (p.progress === 100) bar.style.backgroundColor = "var(--color-green)";
-    else if (p.progress > 0) bar.style.backgroundColor = "var(--interactive-accent)";
-    else bar.style.backgroundColor = "var(--text-muted)";
+    // Wrapper for alignment
+    const wrapper = progressCell.createDiv();
+    wrapper.style.display = "flex";
+    wrapper.style.alignItems = "center";
+    wrapper.style.width = "100%";
+    wrapper.style.height = "100%";
+    wrapper.style.minHeight = "20px";
+
+    // Track (Background)
+    const track = wrapper.createDiv();
+    track.style.width = "100%";
+    track.style.height = "8px";
+    track.style.backgroundColor = "rgba(125, 125, 125, 0.3)";
+    track.style.borderRadius = "4px";
+    track.style.overflow = "hidden";
+    track.style.position = "relative"; // Ensure stacking context
+
+    // Fill (Progress)
+    const fill = track.createDiv();
+    fill.style.height = "100%";
+    fill.style.width = `${p.progress}%`;
+    fill.style.transition = "width 0.3s";
+    fill.style.display = "block"; // Ensure block display
+
+    // Color coding
+    if (p.progress === 100) {
+        fill.style.backgroundColor = "var(--color-green, #4caf50)";
+    } else if (p.progress > 0) {
+        fill.style.backgroundColor = "var(--interactive-accent, #7b1fa2)";
+    } else {
+        fill.style.backgroundColor = "var(--text-muted, #999999)";
+    }
 
     // 3. Task Counts
     const countCell = row.insertCell();
-    countCell.innerHTML = `${p.progress}% <span class="progress-text">(${p.completed}/${p.total})</span>`;
+    countCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+    countCell.innerHTML = `<strong>${p.progress}%</strong> <span class="progress-text" style="color: grey; font-size: 0.9em;">(${p.completed}/${p.total})</span>`;
 });

@@ -284,14 +284,60 @@ async function processSelectedTasks(action) {
     let targetDateStr = null;
     if (action === "move_date") {
         const defaultDate = moment().add(1, 'days').format("YYYY-MM-DD");
-        const input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌日に移動します", defaultDate);
-        if (input === null) return;
+
+        let input;
+        const quickAddApi = app.plugins.plugins.quickadd?.api;
+
+        if (quickAddApi) {
+            try {
+                input = await quickAddApi.inputPrompt(
+                    "移動先の日付を入力してください (YYYY-MM-DD または MM-DD)",
+                    `空欄の場合は ${defaultDate} に移動します`,
+                    ""
+                );
+            } catch (e) {
+                new Notice(`Debug: QuickAdd Prompt Error: ${e.message}`);
+                console.error(e);
+                return;
+            }
+        } else {
+            // Fallback
+            input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌日に移動します", defaultDate);
+        }
+
+        if (input === undefined || input === null) {
+            new Notice("移動をキャンセルしました");
+            return;
+        }
+
+        const parseDate = (input) => {
+            if (!input) return null;
+            let s = input.trim();
+            s = s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+            s = s.replace(/[－．]/g, '-').replace(/[.]/g, '-');
+
+            let sc = moment(s, ["YYYY-MM-DD", "YYYY/MM/DD", "YYYY-M-D", "YYYY/M/D"], true);
+            if (sc.isValid()) return sc;
+
+            if (/^\d{1,2}[-\/]\d{1,2}$/.test(s)) {
+                let d = moment(s, ["MM-DD", "M-D", "MM/DD", "M/D"], true);
+                if (d.isValid()) {
+                    d.year(moment().year());
+                    return d;
+                }
+            }
+            if (/^\d{1,2}-\d{1,2}$/.test(s.replace(/\//g, '-'))) {
+                let d = moment(`${moment().year()}-${s.replace(/\//g, '-')}`, "YYYY-MM-DD", false);
+                if (d.isValid()) return d;
+            }
+            return null;
+        };
 
         const inputStr = input.trim() === "" ? defaultDate : input.trim();
-        const dateObj = moment(inputStr, ["YYYY-MM-DD", "MM-DD"], true);
+        const dateObj = parseDate(inputStr);
 
-        if (!dateObj.isValid()) {
-            new Notice("無効な日付形式です");
+        if (!dateObj || !dateObj.isValid()) {
+            new Notice(`無効な日付形式です: ${inputStr}`);
             return;
         }
         targetDateStr = dateObj.format("YYYY-MM-DD");
@@ -352,22 +398,22 @@ async function processSelectedTasks(action) {
 
     // Handle Moves (Destination)
     if (action === "move_date" && targetDateStr) {
-        const targetYear = moment(targetDateStr).format("YYYY");
-        const targetMonth = moment(targetDateStr).format("MM");
-        const targetYearFolder = `${schedulePath}/${targetYear}`;
-        const targetMonthFolder = `${targetYearFolder}/${targetMonth}`;
-        const targetNewPath = `${targetMonthFolder}/${targetDateStr}.md`;
-        const targetOldPath = `${schedulePath}/${targetDateStr}.md`;
+        const targetMoment = moment(targetDateStr);
+        const tYear = targetMoment.format("YYYY");
+        const tMonth = targetMoment.format("MM");
+        const tYearFolder = `${schedulePath}/${tYear}`;
+        const targetFolder = `${tYearFolder}/${tMonth}`;
+        const targetNewPath = `${targetFolder}/${targetDateStr}.md`;
 
-        let targetFile = app.vault.getAbstractFileByPath(targetOldPath);
-        if (!targetFile) targetFile = app.vault.getAbstractFileByPath(targetNewPath);
+        // Create in new structure
+        if (!app.vault.getAbstractFileByPath(tYearFolder)) await app.vault.createFolder(tYearFolder);
+        if (!app.vault.getAbstractFileByPath(targetFolder)) await app.vault.createFolder(targetFolder);
 
+        let targetFile = app.vault.getAbstractFileByPath(targetNewPath);
         if (!targetFile) {
-            // Create in new structure
-            if (!app.vault.getAbstractFileByPath(targetYearFolder)) await app.vault.createFolder(targetYearFolder);
-            if (!app.vault.getAbstractFileByPath(targetMonthFolder)) await app.vault.createFolder(targetMonthFolder);
             targetFile = await app.vault.create(targetNewPath, "");
         }
+
         const targetContent = await app.vault.read(targetFile);
         const tasksText = tasksToProcess.map(t => t.text).join("\n");
         const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + tasksText + "\n";
@@ -383,8 +429,8 @@ async function processSelectedTasks(action) {
             await app.vault.modify(targetFile, newTargetContent);
             new Notice(`${tasksToProcess.length}件のタスクをタスクプールに移動しました`);
         }
-    } else {
-        new Notice("処理が完了しました");
+    } else if (action === "complete" || action === "delete") {
+        new Notice(`${tasksToProcess.length}件のタスクを処理しました`);
     }
 }
 

@@ -303,23 +303,80 @@ function updateActionButtons() {
 }
 
 async function processSelectedTasks(action) {
-    if (selectedIndices.size === 0) return;
+    new Notice(`Debug: Action=${action}, Selected=${selectedIndices.size}`); // DEBUG
 
     let targetDateStr = null;
     if (action === "move_date") {
-        let nextDay = moment().add(1, 'days');
-        if (moment().day() === 5) nextDay = moment().add(3, 'days'); // Fri -> Mon
-        else if (moment().day() === 6) nextDay = moment().add(2, 'days'); // Sat -> Mon
+        const nextDay = moment().add(1, 'days');
         const defaultDate = nextDay.format("YYYY-MM-DD");
 
-        const input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌営業日に移動します", defaultDate);
-        if (input === null) return;
+        let input;
+        const quickAddApi = app.plugins.plugins.quickadd?.api;
+
+        if (quickAddApi) {
+            try {
+                input = await quickAddApi.inputPrompt(
+                    "移動先の日付を入力してください (YYYY-MM-DD または MM-DD)",
+                    `空欄の場合は ${defaultDate} に移動します`,
+                    ""
+                );
+            } catch (e) {
+                new Notice(`Debug: QuickAdd Prompt Error: ${e.message}`);
+                console.error(e);
+                return;
+            }
+        } else {
+            // Fallback
+            input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌営業日に移動します", defaultDate);
+        }
+
+        if (input === undefined || input === null) {
+            new Notice("移動をキャンセルしました");
+            return;
+        }
+
+        // Helper to parse date flexibly
+        const parseDate = (input) => {
+            if (!input) return null;
+            let s = input.trim();
+            // Normalize: Full-width to half-width
+            s = s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+            // Normalize: Separators to hyphen/slash
+            s = s.replace(/[－．]/g, '-').replace(/[.]/g, '-');
+
+            // Try parsing with moment directly first (handles YYYY-MM-DD, YYYY/MM/DD)
+            let sc = moment(s, ["YYYY-MM-DD", "YYYY/MM/DD", "YYYY-M-D", "YYYY/M-D"], true);
+            if (sc.isValid()) return sc;
+
+            // Handle MM-DD, M-D, MM/DD, M/D
+            // If the user entered MM-DD, we assume current year.
+            // We can just try parsing as MM-DD and set year?
+            // Or prepend year.
+
+            // Regex for MM-DD or M-D or MM/DD or M/D
+            if (/^\d{1,2}[-\/]\d{1,2}$/.test(s)) {
+                // Try parsing as MM-DD or MM/DD
+                let d = moment(s, ["MM-DD", "M-D", "MM/DD", "M/D"], true);
+                if (d.isValid()) {
+                    d.year(moment().year());
+                    return d;
+                }
+            }
+
+            // Fallback: simple append current year if it looks like MM-DD
+            if (/^\d{1,2}-\d{1,2}$/.test(s.replace(/\//g, '-'))) {
+                let d = moment(`${moment().year()}-${s.replace(/\//g, '-')}`, "YYYY-MM-DD", false);
+                if (d.isValid()) return d;
+            }
+
+            return null;
+        };
 
         const inputStr = input.trim() === "" ? defaultDate : input.trim();
-        const dateObj = moment(inputStr, ["YYYY-MM-DD", "MM-DD"], true);
+        const dateObj = parseDate(inputStr);
 
-        if (!dateObj.isValid()) {
-            new Notice("無効な日付形式です");
+        if (!dateObj || !dateObj.isValid()) {
+            new Notice(`無効な日付形式です: ${inputStr}`);
             return;
         }
         targetDateStr = dateObj.format("YYYY-MM-DD");
@@ -337,7 +394,7 @@ async function processSelectedTasks(action) {
         const linesToModify = new Map();
         const movedTaskTexts = [];
 
-        tasksToProcess.forEach(task => {
+        for (const task of tasksToProcess) {
             const lineNum = task.line;
             const lineContent = lines[lineNum];
 
@@ -351,9 +408,13 @@ async function processSelectedTasks(action) {
                 movedTaskTexts.push(lineContent);
                 linesToModify.set(lineNum, null);
                 // Sync to project
-                syncProjectTask(task.text, "move_date", { newDate: targetDateStr });
+                try {
+                    await syncProjectTask(task.text, "move_date", { newDate: targetDateStr });
+                } catch (e) {
+                    console.error(`Project sync error: ${e.message}`);
+                }
             }
-        });
+        }
 
         if (action === "complete") {
             tasksToProcess.forEach(task => {
@@ -379,11 +440,23 @@ async function processSelectedTasks(action) {
             await app.vault.modify(file, lines.join("\n"));
 
             if (action === "move_date" && targetDateStr) {
-                const targetPath = `${schedulePath}/${targetDateStr}.md`;
-                new Notice(`Debug: Target Path = ${targetPath}`); // DEBUG
+                const targetMoment = moment(targetDateStr);
+                const tYear = targetMoment.format("YYYY");
+                const tMonth = targetMoment.format("MM");
+                const tYearFolder = `${schedulePath}/${tYear}`;
+                const targetFolder = `${tYearFolder}/${tMonth}`;
+                const targetPath = `${targetFolder}/${targetDateStr}.md`;
+
+                // Ensure folders exist
+                if (!app.vault.getAbstractFileByPath(tYearFolder)) {
+                    await app.vault.createFolder(tYearFolder);
+                }
+                if (!app.vault.getAbstractFileByPath(targetFolder)) {
+                    await app.vault.createFolder(targetFolder);
+                }
+
                 let targetFile = app.vault.getAbstractFileByPath(targetPath);
                 if (!targetFile) {
-                    new Notice(`Debug: Creating new file at ${targetPath}`); // DEBUG
                     targetFile = await app.vault.create(targetPath, "");
                 }
                 const targetContent = await app.vault.read(targetFile);
