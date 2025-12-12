@@ -317,7 +317,7 @@ async function processSelectedTasks(action) {
             try {
                 input = await quickAddApi.inputPrompt(
                     "移動先の日付を入力してください (YYYY-MM-DD または MM-DD)",
-                    `空欄の場合は ${defaultDate} に移動します`,
+                    `空欄の場合は ${defaultDate} (翌日) に移動します`,
                     ""
                 );
             } catch (e) {
@@ -327,7 +327,7 @@ async function processSelectedTasks(action) {
             }
         } else {
             // Fallback
-            input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌営業日に移動します", defaultDate);
+            input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌日に移動します", defaultDate);
         }
 
         if (input === undefined || input === null) {

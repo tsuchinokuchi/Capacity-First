@@ -1,0 +1,232 @@
+{
+  "choices": [
+    {
+      "id": "task-add",
+      "name": "タスク追加",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-task-add",
+        "name": "タスク追加",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "タスク追加",
+            "path": "scripts/タスク追加.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "task-move",
+      "name": "タスク移動",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-task-move",
+        "name": "タスク移動",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "タスク移動",
+            "path": "scripts/タスク移動.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "task-pool-move",
+      "name": "タスクプールからスケジュールに移動",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-task-pool-move",
+        "name": "タスクプールからスケジュールに移動",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "タスクプールからスケジュールに移動",
+            "path": "scripts/タスクプールからスケジュールに移動.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "task-repeat-expand",
+      "name": "繰り返しタスク展開",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-task-repeat-expand",
+        "name": "繰り返しタスク展開",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "繰り返しタスク展開",
+            "path": "scripts/繰り返しタスク展開.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "capacity-check",
+      "name": "容量チェック",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-capacity-check",
+        "name": "容量チェック",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "容量チェック",
+            "path": "scripts/容量チェック.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "task-complete",
+      "name": "タスク完了",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-task-complete",
+        "name": "タスク完了",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "タスク完了",
+            "path": "scripts/タスク完了.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "task-delete",
+      "name": "タスク削除",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-task-delete",
+        "name": "タスク削除",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "タスク削除",
+            "path": "scripts/タスク削除.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "project-create",
+      "name": "プロジェクト作成",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-project-create",
+        "name": "プロジェクト作成",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "プロジェクト作成",
+            "path": "scripts/プロジェクト作成.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "subtask-add",
+      "name": "サブタスク追加",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-subtask-add",
+        "name": "サブタスク追加",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "サブタスク追加",
+            "path": "scripts/サブタスク追加.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "subtask-expand",
+      "name": "サブタスク展開",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-subtask-expand",
+        "name": "サブタスク展開",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "サブタスク展開",
+            "path": "scripts/サブタスク展開.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    },
+    {
+      "id": "progress-update",
+      "name": "進捗更新",
+      "type": "Macro",
+      "command": true,
+      "macro": {
+        "id": "macro-progress-update",
+        "name": "進捗更新",
+        "commands": [
+          {
+            "type": "UserScript",
+            "name": "進捗更新",
+            "path": "scripts/進捗更新.js"
+          }
+        ]
+      },
+      "runOnStartup": false
+    }
+  ],
+  "inputPrompt": "single-line",
+  "devMode": false,
+  "templateFolderPath": "",
+  "announceUpdates": "all",
+  "version": "2.8.0",
+  "globalVariables": {},
+  "onePageInputEnabled": false,
+  "disableOnlineFeatures": true,
+  "enableRibbonIcon": false,
+  "showCaptureNotification": true,
+  "showInputCancellationNotification": false,
+  "enableTemplatePropertyTypes": false,
+  "ai": {
+    "defaultModel": "Ask me",
+    "defaultSystemPrompt": "As an AI assistant within Obsidian, your primary goal is to help users manage their ideas and knowledge more effectively.",
+    "promptTemplatesFolderPath": "",
+    "showAssistant": true,
+    "providers": []
+  },
+  "migrations": {
+    "migrateToMacroIDFromEmbeddedMacro": true,
+    "useQuickAddTemplateFolder": true,
+    "incrementFileNameSettingMoveToDefaultBehavior": true,
+    "mutualExclusionInsertAfterAndWriteToBottomOfFile": true,
+    "setVersionAfterUpdateModalRelease": true,
+    "addDefaultAIProviders": true,
+    "removeMacroIndirection": true,
+    "migrateFileOpeningSettings": true,
+    "setProviderModelDiscoveryMode": true
+  }
+}

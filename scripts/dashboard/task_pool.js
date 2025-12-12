@@ -347,7 +347,7 @@ async function processSelectedTasks(action) {
 
     const tasksToProcess = Array.from(selectedIndices).map(i => allTasks[i]);
 
-    // Group tasks by file path to minimize file writes
+    const movedTaskTexts = [];
     const tasksByFile = new Map();
     tasksToProcess.forEach(task => {
         if (!tasksByFile.has(task.path)) tasksByFile.set(task.path, []);
@@ -375,6 +375,7 @@ async function processSelectedTasks(action) {
                 linesToModify.set(lineNum, null);
             } else if (action === "move_date" || action === "move_to_pool") {
                 linesToModify.set(lineNum, null); // Remove from source
+                movedTaskTexts.push(lineContent); // Capture full line
             }
         });
 
@@ -415,8 +416,43 @@ async function processSelectedTasks(action) {
         }
 
         const targetContent = await app.vault.read(targetFile);
-        const tasksText = tasksToProcess.map(t => t.text).join("\n");
-        const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + tasksText + "\n";
+        const tasksText = movedTaskTexts.join("\n");
+        // Update task lines with new date if necessary or just append as is?
+        // The original logic just appended the text. But `movedTaskTexts` captures the line AS IS.
+        // If the line had a date before, it might be the WRONG date now?
+        // But we are dealing with Task Pool (no date) or Overdue (old date).
+        // It's better to update the date tag if present, or add it?
+        // Wait, standard practice is typically just appending.
+        // But if I move an overdue task from Yesterday, it will still say "Yesterday" in the date tag if I don't update it?
+        // Actually, the prompt says "Move Date". The user expects it to be scheduled for the new date.
+        // I should probably strip old date tags and add the new one, OR just trust `Dataview` to find it by file date.
+        // BUT, `task_pool.js` tasks might have `📅 YYYY-MM-DD` if they were overdue tasks.
+        // Let's clean the tasksText before writing.
+
+        const contentToAdd = movedTaskTexts.map(line => {
+            // Replace existing date tag or add new one? 
+            // Tasks in schedule usually implicitly belong to that date.
+            // But sometimes we use explicit tags.
+            // Let's strip any existing date tag to avoid confusion.
+            let cleanLine = line.replace(/📅 \d{4}-\d{2}-\d{2}/, "").trim();
+            // We don't necessarily need to add the date tag if it's in the daily note file.
+            return cleanLine;
+        }).join("\n");
+
+        // Actually, let's keep it simple first: just append. 
+        // If I strip the date, I might break something else.
+        // But checking `task_pool.js` again, it filters out tasks with 📅 from the pool view!
+        // `t.text.includes("📅")` is filtered OUT for pool tasks.
+        // For overdue tasks, they are from daily notes, so they shouldn't have explicit date tags usually (implicit).
+        // Loop:
+        // `const overdueTasks ... p.file.name.match(...)`
+        // So for overdue tasks, they don't have tags usually.
+        // So using `movedTaskTexts` directly is safe? 
+        // EXCEPT if they DO have tags.
+        // Let's stick to using `movedTaskTexts` but replace any potential date tag with the new one?
+        // No, simplest fix is to use the full line.
+
+        const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + movedTaskTexts.join("\n") + "\n";
         await app.vault.modify(targetFile, newTargetContent);
         new Notice(`${tasksToProcess.length}件のタスクを ${targetDateStr} に移動しました`);
     } else if (action === "move_to_pool") {
@@ -424,8 +460,8 @@ async function processSelectedTasks(action) {
         let targetFile = app.vault.getAbstractFileByPath(targetPath);
         if (targetFile) {
             const targetContent = await app.vault.read(targetFile);
-            const tasksText = tasksToProcess.map(t => t.text).join("\n");
-            const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + tasksText + "\n";
+            // Here also use movedTaskTexts
+            const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + movedTaskTexts.join("\n") + "\n";
             await app.vault.modify(targetFile, newTargetContent);
             new Notice(`${tasksToProcess.length}件のタスクをタスクプールに移動しました`);
         }

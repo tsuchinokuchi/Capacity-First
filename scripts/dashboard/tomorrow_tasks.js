@@ -306,14 +306,28 @@ async function processSelectedTasks(action) {
 
     let targetDateStr = null;
     if (action === "move_date") {
-        // Default: Next working day relative to TOMORROW
-        let target = moment(tomorrow).add(1, 'days');
-        if (target.day() === 6) target.add(2, 'days'); // Sat -> Mon
-        else if (target.day() === 0) target.add(1, 'days'); // Sun -> Mon
-
+        // Default: Next day relative to TOMORROW
+        const target = moment(tomorrow).add(1, 'days');
         const defaultDate = target.format("YYYY-MM-DD");
 
-        const input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌営業日に移動します", defaultDate);
+        let input;
+        const quickAddApi = app.plugins.plugins.quickadd?.api;
+
+        if (quickAddApi) {
+            try {
+                input = await quickAddApi.inputPrompt(
+                    "移動先の日付を入力してください (YYYY-MM-DD または MM-DD)",
+                    `空欄の場合は ${defaultDate} (翌日) に移動します`,
+                    ""
+                );
+            } catch (e) {
+                new Notice(`Debug: QuickAdd Prompt Error: ${e.message}`);
+                console.error(e);
+                return;
+            }
+        } else {
+            input = prompt("移動先の日付を入力してください (YYYY-MM-DD または MM-DD)\n空欄の場合は翌日に移動します", defaultDate);
+        }
         if (input === null) return;
 
         const inputStr = input.trim() === "" ? defaultDate : input.trim();
@@ -369,8 +383,29 @@ async function processSelectedTasks(action) {
             await app.vault.modify(file, lines.join("\n"));
 
             if (action === "move_date" && targetDateStr) {
-                const targetPath = `${schedulePath}/${targetDateStr}.md`;
+                const targetMoment = moment(targetDateStr);
+                const tYear = targetMoment.format("YYYY");
+                const tMonth = targetMoment.format("MM");
+                const tYearFolder = `${schedulePath}/${tYear}`;
+                const targetFolder = `${tYearFolder}/${tMonth}`;
+                const targetPath = `${targetFolder}/${targetDateStr}.md`;
+
+                // Ensure folders exist
+                if (!app.vault.getAbstractFileByPath(tYearFolder)) {
+                    await app.vault.createFolder(tYearFolder);
+                }
+                if (!app.vault.getAbstractFileByPath(targetFolder)) {
+                    await app.vault.createFolder(targetFolder);
+                }
+
                 let targetFile = app.vault.getAbstractFileByPath(targetPath);
+                // Fallback check for old path
+                if (!targetFile) {
+                    const oldPath = `${schedulePath}/${targetDateStr}.md`;
+                    const oldFile = app.vault.getAbstractFileByPath(oldPath);
+                    if (oldFile) targetFile = oldFile;
+                }
+
                 if (!targetFile) {
                     targetFile = await app.vault.create(targetPath, "");
                 }
