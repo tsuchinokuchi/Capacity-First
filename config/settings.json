@@ -1,9 +1,0 @@
-{
-  "$schema": "../タスク管理_Public/config/settings.schema.json",
-  "maxDailyMinutes": 360,
-  "workingDaysPerWeek": 5
-}
-
-
-
-

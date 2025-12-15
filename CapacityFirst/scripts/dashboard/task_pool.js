@@ -403,17 +403,14 @@ async function processSelectedTasks(action) {
         const targetMoment = moment(targetDateStr);
         const tYear = targetMoment.format("YYYY");
         const tMonth = targetMoment.format("MM");
-        const tYearFolder = `${schedulePath}/${tYear}`;
-        const targetFolder = `${tYearFolder}/${tMonth}`;
-        const targetNewPath = `${targetFolder}/${targetDateStr}.md`;
+        const targetFlatPath = `${schedulePath}/${targetDateStr}.md`;
+        const targetNestedPath = `${schedulePath}/${tYear}/${tMonth}/${targetDateStr}.md`;
 
-        // Create in new structure
-        if (!app.vault.getAbstractFileByPath(tYearFolder)) await app.vault.createFolder(tYearFolder);
-        if (!app.vault.getAbstractFileByPath(targetFolder)) await app.vault.createFolder(targetFolder);
+        let targetFile = app.vault.getAbstractFileByPath(targetFlatPath);
+        if (!targetFile) targetFile = app.vault.getAbstractFileByPath(targetNestedPath);
 
-        let targetFile = app.vault.getAbstractFileByPath(targetNewPath);
         if (!targetFile) {
-            targetFile = await app.vault.create(targetNewPath, "");
+            targetFile = await app.vault.create(targetFlatPath, "");
         }
 
         const targetContent = await app.vault.read(targetFile);

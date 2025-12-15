@@ -60,11 +60,11 @@ module.exports = async (params) => {
   async function getDailyTasks(date) {
     const year = moment(date).format("YYYY");
     const month = moment(date).format("MM");
-    const newPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
-    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${date}.md`;
+    const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
 
-    let file = app.vault.getAbstractFileByPath(newPath);
-    if (!file) file = app.vault.getAbstractFileByPath(oldPath);
+    let file = app.vault.getAbstractFileByPath(flatPath);
+    if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
     if (!file) return [];
 
@@ -171,29 +171,15 @@ module.exports = async (params) => {
     // 6. スケジュールファイルにタスクを追加
     const year = moment(dateStr).format("YYYY");
     const month = moment(dateStr).format("MM");
-    const yearFolder = `${SCHEDULE_PATH}/${year}`;
-    const monthFolder = `${yearFolder}/${month}`;
-    const filePath = `${monthFolder}/${dateStr}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${dateStr}.md`;
+    const nestedFolder = `${SCHEDULE_PATH}/${year}/${month}`;
+    const nestedPath = `${nestedFolder}/${dateStr}.md`;
 
-    // フォルダの作成
-    if (!app.vault.getAbstractFileByPath(yearFolder)) {
-      await app.vault.createFolder(yearFolder);
-    }
-    if (!app.vault.getAbstractFileByPath(monthFolder)) {
-      await app.vault.createFolder(monthFolder);
-    }
-
-    let file = app.vault.getAbstractFileByPath(filePath);
+    let file = app.vault.getAbstractFileByPath(flatPath);
+    if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
     if (!file) {
-      // 旧パスのチェック（念のため）
-      const oldPath = `${SCHEDULE_PATH}/${dateStr}.md`;
-      const oldFile = app.vault.getAbstractFileByPath(oldPath);
-      if (oldFile) {
-        file = oldFile;
-      } else {
-        file = await app.vault.create(filePath, `## 今日のスケジュール\n\n`);
-      }
+      file = await app.vault.create(flatPath, `## 今日のスケジュール\n\n`);
     }
 
     // タスク行を作成（日付を追加）

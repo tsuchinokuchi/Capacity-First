@@ -29,7 +29,9 @@ const year = moment().format("YYYY");
 const month = moment().format("MM");
 // Try new path first, fallback to old path if needed (or just use new path if we assume migration)
 // Let's check both or just prefer new. For now, let's construct the new path.
-const todayPage = dv.page(`${schedulePath}/${year}/${month}/${today}`) || dv.page(`${schedulePath}/${today}`);
+const flatPath = `${schedulePath}/${today}.md`;
+const nestedPath = `${schedulePath}/${year}/${month}/${today}.md`;
+const todayPage = dv.page(flatPath) || dv.page(nestedPath);
 const tasks = todayPage ? todayPage.file.tasks.where(t => t.text.includes("⏱️")).array() : [];
 
 // Container setup
@@ -441,22 +443,21 @@ async function processSelectedTasks(action) {
                 const targetMoment = moment(targetDateStr);
                 const tYear = targetMoment.format("YYYY");
                 const tMonth = targetMoment.format("MM");
-                const tYearFolder = `${schedulePath}/${tYear}`;
-                const targetFolder = `${tYearFolder}/${tMonth}`;
-                const targetPath = `${targetFolder}/${targetDateStr}.md`;
 
-                // Ensure folders exist
-                if (!app.vault.getAbstractFileByPath(tYearFolder)) {
-                    await app.vault.createFolder(tYearFolder);
-                }
-                if (!app.vault.getAbstractFileByPath(targetFolder)) {
-                    await app.vault.createFolder(targetFolder);
-                }
+                const targetFlatPath = `${schedulePath}/${targetDateStr}.md`;
+                const targetNestedPath = `${schedulePath}/${tYear}/${tMonth}/${targetDateStr}.md`;
 
-                let targetFile = app.vault.getAbstractFileByPath(targetPath);
+                let targetFile = app.vault.getAbstractFileByPath(targetNestedPath);
+                if (!targetFile) targetFile = app.vault.getAbstractFileByPath(targetFlatPath);
+
                 if (!targetFile) {
-                    targetFile = await app.vault.create(targetPath, "");
+                    const tYearFolder = `${schedulePath}/${tYear}`;
+                    const tMonthFolder = `${tYearFolder}/${tMonth}`;
+                    if (!app.vault.getAbstractFileByPath(tYearFolder)) await app.vault.createFolder(tYearFolder);
+                    if (!app.vault.getAbstractFileByPath(tMonthFolder)) await app.vault.createFolder(tMonthFolder);
+                    targetFile = await app.vault.create(targetNestedPath, "## 今日のスケジュール\n\n");
                 }
+
                 const targetContent = await app.vault.read(targetFile);
                 const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + movedTaskTexts.join("\n") + "\n";
                 await app.vault.modify(targetFile, newTargetContent);

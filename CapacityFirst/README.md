@@ -79,6 +79,20 @@ QuickAddには、タスク管理用の「マクロ」を登録する必要があ
 
 ※ `scripts/config.js` を開いて、フォルダパス設定などを環境に合わせて変更することも可能です（通常はそのままで動きます）。
 
+## 4. 1日の容量（キャパシティ）の設定
+
+デフォルトでは、1日のタスク容量の上限は **360分（6時間）** に設定されています。
+あなたの毎日の作業可能時間に合わせて、この値を変更できます。
+
+1.  `config/settings.json` を開きます。
+2.  `maxDailyMinutes` の数値を変更します（単位：分）。
+
+```json
+{
+    "maxDailyMinutes": 480  // 例: 8時間にする場合
+}
+```
+
 ---
 セットアップは以上です。
 `タスク管理ダッシュボード.md` を開いて、画面が表示されれば成功です！
@@ -96,3 +110,40 @@ const BASE_PATH = "MyTaskSystem";
 ```
 
 ※ 正しく設定しないと、スクリプトがファイルを見つけられずにエラーになります。
+
+## (応用) ダッシュボードパーツの埋め込み
+
+ダッシュボードの各パーツ（「今日のタスク」や「プロジェクト進捗」など）は、個別に他のノート（デイリーノートなど）に埋め込むことができます。
+自分好みのダッシュボードを作りたい場合や、デイリーノートにタスクリストを表示したい場合に活用してください。
+
+### 埋め込み用コード
+
+DataviewJSのコードブロックを作成し、以下のコードを記述してください。
+`ROOT` の値は、あなたのフォルダ構成に合わせて変更してください（標準構成なら `"CapacityFirst"`）。
+
+```dataviewjs
+// 設定: スクリプトの親フォルダ名
+const ROOT = "CapacityFirst"; 
+
+// 設定ファイルの読み込み
+// ※パスは環境に合わせて調整が必要な場合があります
+const configPath = app.vault.adapter.basePath + "/" + (ROOT ? ROOT + "/" : "") + "scripts/config.js";
+const config = require(configPath);
+
+// 埋め込みたいパーツのパスを指定して表示
+// 第2引数に config と root を渡すのがポイントです
+await dv.view((ROOT ? ROOT + "/" : "") + "scripts/dashboard/today_tasks", { config: config, root: ROOT });
+```
+
+### 利用可能なパーツ一覧
+
+上記の `scripts/dashboard/today_tasks` の部分を、以下のように書き換えることで各パーツを表示できます。
+
+| パーツ名 | パス (書き換える部分) | 用途 |
+| :--- | :--- | :--- |
+| **今日のタスク** | `scripts/dashboard/today_tasks` | 今日のタスク一覧と操作ボタンを表示します。 |
+| **明日のタスク** | `scripts/dashboard/tomorrow_tasks` | 明日の予定タスクを表示します。 |
+| **タスクプール** | `scripts/dashboard/task_pool` | 期限切れタスクと、プール（いつかやる）タスクを表示します。 |
+| **プロジェクト進捗** | `scripts/dashboard/project_list` | 進行中のプロジェクトと進捗バーを表示します。 |
+| **今週のサマリー** | `scripts/dashboard/weekly_summary` | 今週のタスク完了数や時間の集計を表示します。 |
+| **キャパシティ** | `scripts/dashboard/capacity` | 今日の残り時間（見積もり時間 vs 稼働可能時間）を表示します。 |

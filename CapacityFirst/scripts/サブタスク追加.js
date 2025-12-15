@@ -6,12 +6,22 @@ module.exports = async (params) => {
   const { app, quickAddApi } = params;
 
   // 設定
+  const path = require('path');
+
+  // Use local config relative to this script
+  const configPath = path.join(__dirname, 'config.js');
+
+  // Clear cache for local config
+  if (require.cache && require.cache[configPath]) {
+    delete require.cache[configPath];
+  }
+
   const Config = require('./config');
   const { PATHS, FILES, SETTINGS } = Config;
 
   const SCHEDULE_PATH = PATHS.SCHEDULE;
   const CONFIG_PATH = FILES.SETTINGS;
-  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES;
+  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES || 360;
   let maxDailyMinutes = DEFAULT_MAX_DAILY_MINUTES;
 
   async function loadSettings() {
@@ -61,8 +71,10 @@ module.exports = async (params) => {
     const d = moment(date, "YYYY-MM-DD");
     const year = d.format("YYYY");
     const month = d.format("MM");
-    const filePath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
-    const file = app.vault.getAbstractFileByPath(filePath);
+    const filePath = `${SCHEDULE_PATH}/${date}.md`;
+    const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
+    let file = app.vault.getAbstractFileByPath(filePath);
+    if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
     if (!file) return [];
 
@@ -172,18 +184,24 @@ module.exports = async (params) => {
   // 日別タスクファイルに追加
   const year = date.format("YYYY");
   const month = date.format("MM");
-  const folderPath = `${SCHEDULE_PATH}/${year}/${month}`;
-  const filePath = `${folderPath}/${dateStr}.md`;
 
-  let file = app.vault.getAbstractFileByPath(filePath);
+  const flatPath = `${SCHEDULE_PATH}/${dateStr}.md`;
+  const yearFolder = `${SCHEDULE_PATH}/${year}`;
+  const monthFolder = `${yearFolder}/${month}`;
+  const nestedPath = `${monthFolder}/${dateStr}.md`;
 
-  // ファイルが存在しない場合は作成
+  let file = app.vault.getAbstractFileByPath(nestedPath);
+  if (!file) file = app.vault.getAbstractFileByPath(flatPath);
+
+  // ファイルが存在しない場合は作成 (ネスト構造で)
   if (!file) {
-    // フォルダが存在しない場合は作成
-    if (!app.vault.getAbstractFileByPath(folderPath)) {
-      await app.vault.createFolder(folderPath);
+    if (!app.vault.getAbstractFileByPath(yearFolder)) {
+      await app.vault.createFolder(yearFolder);
     }
-    file = await app.vault.create(filePath, `## 今日のスケジュール\n\n`);
+    if (!app.vault.getAbstractFileByPath(monthFolder)) {
+      await app.vault.createFolder(monthFolder);
+    }
+    file = await app.vault.create(nestedPath, `## 今日のスケジュール\n\n`);
   }
 
   // タスク行を作成
@@ -200,5 +218,5 @@ module.exports = async (params) => {
     : `✅ サブタスクを追加しました\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
 
   new Notice(message, 3000);
+  new Notice(`(CapacityFirst Script)`, 3000);
 };
-

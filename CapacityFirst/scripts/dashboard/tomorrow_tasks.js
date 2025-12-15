@@ -384,28 +384,14 @@ async function processSelectedTasks(action) {
                 const targetMoment = moment(targetDateStr);
                 const tYear = targetMoment.format("YYYY");
                 const tMonth = targetMoment.format("MM");
-                const tYearFolder = `${schedulePath}/${tYear}`;
-                const targetFolder = `${tYearFolder}/${tMonth}`;
-                const targetPath = `${targetFolder}/${targetDateStr}.md`;
+                const targetFlatPath = `${schedulePath}/${targetDateStr}.md`;
+                const targetNestedPath = `${schedulePath}/${tYear}/${tMonth}/${targetDateStr}.md`;
 
-                // Ensure folders exist
-                if (!app.vault.getAbstractFileByPath(tYearFolder)) {
-                    await app.vault.createFolder(tYearFolder);
-                }
-                if (!app.vault.getAbstractFileByPath(targetFolder)) {
-                    await app.vault.createFolder(targetFolder);
-                }
-
-                let targetFile = app.vault.getAbstractFileByPath(targetPath);
-                // Fallback check for old path
-                if (!targetFile) {
-                    const oldPath = `${schedulePath}/${targetDateStr}.md`;
-                    const oldFile = app.vault.getAbstractFileByPath(oldPath);
-                    if (oldFile) targetFile = oldFile;
-                }
+                let targetFile = app.vault.getAbstractFileByPath(targetFlatPath);
+                if (!targetFile) targetFile = app.vault.getAbstractFileByPath(targetNestedPath);
 
                 if (!targetFile) {
-                    targetFile = await app.vault.create(targetPath, "");
+                    targetFile = await app.vault.create(targetFlatPath, "");
                 }
                 const targetContent = await app.vault.read(targetFile);
                 const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + movedTaskTexts.join("\n") + "\n";

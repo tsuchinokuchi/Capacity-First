@@ -4,40 +4,51 @@
 
 module.exports = async (params) => {
   // QuickAddのAPIを取得
+  // new Notice("Debug: Script Started 1.2"); // Check execution
   const { app, quickAddApi } = params;
 
   // 設定
   // 設定
+  // 設定
   const path = require('path');
-  const basePath = app.vault.adapter.basePath;
-  const configPath = path.join(basePath, 'scripts', 'config.js');
-  const Config = require(configPath);
+  // Use local config relative to this script
+  const configPath = path.join(__dirname, 'config.js');
+
+  // Clear cache for local config
+  if (require.cache && require.cache[configPath]) {
+    delete require.cache[configPath];
+  }
+
+  const Config = require('./config');
   const { PATHS, FILES } = Config;
 
   const SCHEDULE_PATH = PATHS.SCHEDULE;
-  const DAILY_TASKS_PATH = "繰り返しタスク/毎日.md";
-  const WEEKLY_TASKS_PATH = "繰り返しタスク/毎週.md";
-  const MONTHLY_TASKS_PATH = "繰り返しタスク/毎月.md";
+  const DAILY_TASKS_PATH = `${PATHS.SCHEDULE}/繰り返しタスク/毎日/毎日.md`;
+  const WEEKLY_TASKS_PATH = `${PATHS.SCHEDULE}/繰り返しタスク/毎週/毎週.md`;
+  const MONTHLY_TASKS_PATH = `${PATHS.SCHEDULE}/繰り返しタスク/毎月/毎月.md`;
   const WORK_GRID_PATH = FILES.WEEKLY_GRID;
 
   // キーワード定義（出勤日判定用）
   const workKeywords = [/勤務/, /出勤/];
 
   // ヘルパー関数: 出勤日リストを取得（スケジュールフォルダから）
+  // 見つからない場合は、期間内のすべての日付を返す（初期状態やエラー回避のため）
   async function getWorkDays(startDate, days = 14) {
     const workDays = [];
+    const allDays = [];
     const start = moment(startDate);
 
     for (let i = 0; i < days; i++) {
       const date = moment(start).add(i, 'days');
       const dateStr = date.format("YYYY-MM-DD");
+      allDays.push(dateStr);
+
       const year = date.format("YYYY");
       const month = date.format("MM");
-      const newPath = `${SCHEDULE_PATH}/${year}/${month}/${dateStr}.md`;
-      const oldPath = `${SCHEDULE_PATH}/${dateStr}.md`;
-
-      let file = app.vault.getAbstractFileByPath(newPath);
-      if (!file) file = app.vault.getAbstractFileByPath(oldPath);
+      const flatPath = `${SCHEDULE_PATH}/${dateStr}.md`;
+      const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${dateStr}.md`;
+      let file = app.vault.getAbstractFileByPath(flatPath);
+      if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
       if (file) {
         const content = await app.vault.read(file);
@@ -50,6 +61,12 @@ module.exports = async (params) => {
           workDays.push(dateStr);
         }
       }
+    }
+
+    // もし出勤日が1つも見つからない場合は、全ての日付を対象とする（フォールバック）
+    if (workDays.length === 0) {
+      // new Notice("Debug: No work days found, falling back to all days.");
+      return allDays;
     }
 
     return workDays;
@@ -95,11 +112,11 @@ module.exports = async (params) => {
   async function getDailyTasks(date) {
     const year = moment(date).format("YYYY");
     const month = moment(date).format("MM");
-    const newPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
-    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${date}.md`;
+    const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
 
-    let file = app.vault.getAbstractFileByPath(newPath);
-    if (!file) file = app.vault.getAbstractFileByPath(oldPath);
+    let file = app.vault.getAbstractFileByPath(flatPath);
+    if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
     if (!file) return [];
 
@@ -143,19 +160,16 @@ module.exports = async (params) => {
   async function addTaskToDate(date, taskLine) {
     const year = moment(date).format("YYYY");
     const month = moment(date).format("MM");
-    const yearFolder = `${SCHEDULE_PATH}/${year}`;
-    const monthFolder = `${yearFolder}/${month}`;
-    const newPath = `${monthFolder}/${date}.md`;
-    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${date}.md`;
+    const nestedFolder = `${SCHEDULE_PATH}/${year}/${month}`;
+    const nestedPath = `${nestedFolder}/${date}.md`;
 
-    let file = app.vault.getAbstractFileByPath(oldPath);
-    if (!file) file = app.vault.getAbstractFileByPath(newPath);
+    let file = app.vault.getAbstractFileByPath(flatPath);
+    if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
-    // ファイルが存在しない場合は作成 (新しい構造で)
+    // ファイルが存在しない場合は作成 (フラット構造で)
     if (!file) {
-      if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
-      if (!app.vault.getAbstractFileByPath(monthFolder)) await app.vault.createFolder(monthFolder);
-      file = await app.vault.create(newPath, `## 今日のスケジュール\n\n`);
+      file = await app.vault.create(flatPath, `## 今日のスケジュール\n\n`);
     }
 
     // 日付を更新したタスク行を作成（🔁マーカーを削除）
@@ -207,16 +221,23 @@ module.exports = async (params) => {
       endDate = moment(today).endOf('month');
     }
 
-    // 出勤日リストを取得
-    const workDays = await getWorkDays(startDate.format("YYYY-MM-DD"), endDate.diff(startDate, 'days') + 1);
+    // 出勤日判定ロジック廃止（無条件で展開）
+    // const workDays = await getWorkDays(startDate.format("YYYY-MM-DD"), endDate.diff(startDate, 'days') + 1);
+
 
     // 繰り返しタスクを読み込む
+    // DEBUG:
+    // new Notice(`Debug: Loading daily from ${DAILY_TASKS_PATH}`);
     const dailyTasks = await loadRecurringTasks(DAILY_TASKS_PATH);
+    // new Notice(`Debug: Daily tasks found: ${dailyTasks.length}`);
+
     const weeklyTasks = await loadRecurringTasks(WEEKLY_TASKS_PATH);
     const monthlyTasks = await loadRecurringTasks(MONTHLY_TASKS_PATH);
 
+    // new Notice(`Debug: Range ${startDate.format("YYYY-MM-DD")} - ${endDate.format("YYYY-MM-DD")}`);
+
     if (dailyTasks.length === 0 && weeklyTasks.length === 0 && monthlyTasks.length === 0) {
-      new Notice("繰り返しタスクが定義されていません");
+      new Notice(`繰り返しタスク定義が見つかりません:\n${DAILY_TASKS_PATH}`);
       return;
     }
 
@@ -231,16 +252,13 @@ module.exports = async (params) => {
       while (current.isSameOrBefore(endDate)) {
         const dateStr = current.format("YYYY-MM-DD");
 
-        // 出勤日のみ展開（または全ての日に展開する場合は条件を外す）
-        // ここでは出勤日にのみ展開する設定
-        if (workDays.includes(dateStr)) {
-          const exists = await taskExists(dateStr, task.text);
-          if (!exists) {
-            await addTaskToDate(dateStr, task.line);
-            addedCount++;
-          } else {
-            skippedCount++;
-          }
+        // 無条件で展開
+        const exists = await taskExists(dateStr, task.text);
+        if (!exists) {
+          await addTaskToDate(dateStr, task.line);
+          addedCount++;
+        } else {
+          skippedCount++;
         }
 
         current.add(1, 'day');

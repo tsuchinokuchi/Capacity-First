@@ -50,31 +50,17 @@
             }
           },
           {
-            "id": "5abce8277d0814aa",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "CapacityFirst/タスク管理ダッシュボード.md",
-                "mode": "preview",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "タスク管理ダッシュボード"
-            }
-          },
-          {
             "id": "bf9c691cbbe57e61",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "動作確認チェックリスト.md",
+                "file": "CapacityFirst/README.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "動作確認チェックリスト"
+              "title": "README"
             }
           }
         ],
@@ -241,44 +227,44 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "5abce8277d0814aa",
+  "active": "bf9c691cbbe57e61",
   "lastOpenFiles": [
-    "CapacityFirst/スケジュール",
-    "CapacityFirst/スケジュールテンプレート.md",
+    "動作確認チェックリスト.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-22.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-21.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-20.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-19.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-18.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-17.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-16.md",
     "CapacityFirst/タスク管理ダッシュボード.md",
-    "CapacityFirst/README.md",
+    "CapacityFirst/スケジュールテンプレート.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-15.md",
+    "CapacityFirst/スケジュール/繰り返しタスク/毎日/毎日.md",
+    "CapacityFirst/scripts/繰り返しタスク追加.js",
+    "CapacityFirst/スケジュール/繰り返しタスク/毎月",
+    "CapacityFirst/スケジュール/繰り返しタスク/毎週",
+    "CapacityFirst/スケジュール/繰り返しタスク/毎日",
+    "CapacityFirst/スケジュール/繰り返しタスク/毎日.md",
+    "CapacityFirst/スケジュール/繰り返しタスク",
+    "desktop.ini",
+    "スケジュール/2025/12/2025-12-16.md",
+    "スケジュール/2025/12/2025-12-07.md",
     "CapacityFirst.zip",
-    "CapacityFirst.7z",
-    "スケジュール/2025/11/2025-11-29.md",
-    "スケジュール/2025/11/2025-11-28.md",
-    "スケジュール/2025/11/2025-11-27.md",
-    "スケジュール/2025/11/2025-11-26.md",
-    "スケジュール/2025/11/2025-11-25.md",
-    "スケジュール/2025/11/2025-11-24.md",
-    "スケジュール/2025/11/2025-11-23.md",
-    "スケジュール/2025/11/2025-11-22.md",
-    "スケジュール/2025/11/2025-11-21.md",
-    "スケジュール/2025/11/2025-11-20.md",
-    "スケジュール/2025/11/2025-11-19.md",
-    "スケジュール/2025/11/2025-11-18.md",
-    "スケジュール/2025/11/2025-11-17.md",
-    "スケジュール/2025/11/2025-11-16.md",
-    "スケジュール/2025/11/2025-11-15.md",
-    "スケジュール/2025/11/2025-11-14.md",
-    "スケジュール/2025/11/2025-11-13.md",
-    "スケジュール/2025/11/2025-11-12.md",
-    "スケジュール/2025/11/2025-11-11.md",
-    "スケジュール/2025/11/2025-11-10.md",
-    "スケジュール/2025/11/2025-11-09.md",
-    "スケジュール/2025/11/2025-11-08.md",
-    "スケジュール/2025/10",
-    "スケジュール/2025/09",
-    "スケジュール/2025/08",
-    "スケジュール/2025/07",
-    "スケジュール/2025/06",
-    "スケジュール/2025/05",
-    "スケジュール/2025/04",
-    "スケジュール/2025/03",
+    "CapacityFirst.zip.tmp",
+    "CapacityFirst/config/settings.json",
+    "CapacityFirst/config",
+    "CapacityFirst/ジャンル設定.md",
+    "CapacityFirst/README.md",
+    "スケジュール/2025/12/2025-12-15.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-31.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-30.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-29.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-28.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-27.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-26.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-25.md",
+    "CapacityFirst/スケジュール/2025/12/2025-12-24.md",
     "Pasted image 20251207221943.png",
     "Pasted image 20251207220632.png"
   ]

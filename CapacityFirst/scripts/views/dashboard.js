@@ -144,4 +144,40 @@ createYearBtn.onclick = async () => {
         new Notice(`Error: ${e.message}`);
         console.error(e);
     }
+}
+// Stray brace removed
+
+const addRecurringBtn = adminContainer.createEl("button", { text: "🔁 繰り返しタスク追加" });
+addRecurringBtn.style.marginLeft = "10px";
+addRecurringBtn.onclick = async () => {
+    try {
+        const scriptPath = `${root}/scripts/繰り返しタスク追加.js`;
+        const absPath = app.vault.adapter.basePath + "/" + scriptPath;
+        // Invalidate cache
+        if (require.cache[absPath]) delete require.cache[absPath];
+        const script = require(absPath);
+        await script({ app: app, quickAddApi: app.plugins.plugins.quickadd.api });
+    } catch (e) {
+        new Notice(`Error: ${e.message}`);
+        console.error(e);
+    }
+};
+
+const expandRecurringBtn = adminContainer.createEl("button", { text: "🔄 繰り返しタスク展開" });
+expandRecurringBtn.style.marginLeft = "10px";
+expandRecurringBtn.onclick = async () => {
+    try {
+        const scriptPath = `${root}/scripts/繰り返しタスク展開.js`;
+        const absPath = app.vault.adapter.basePath + "/" + scriptPath;
+        // Invalidate cache (Robust for Windows)
+        const absPathDeep = absPath.replace(/\//g, "\\");
+        if (require.cache[absPath]) delete require.cache[absPath];
+        if (require.cache[absPathDeep]) delete require.cache[absPathDeep];
+
+        const script = require(absPath);
+        await script({ app: app, quickAddApi: app.plugins.plugins.quickadd.api });
+    } catch (e) {
+        new Notice(`Error: ${e.message}`);
+        console.error(e);
+    }
 };

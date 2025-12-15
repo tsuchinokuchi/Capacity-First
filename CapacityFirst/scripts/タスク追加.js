@@ -7,15 +7,22 @@ module.exports = async (params) => {
 
   // 設定
   const path = require('path');
-  const basePath = app.vault.adapter.basePath;
-  const configPath = path.join(basePath, 'scripts', 'config.js');
-  const Config = require(configPath);
+
+  // Use local config relative to this script
+  const configPath = path.join(__dirname, 'config.js');
+
+  // Clear cache for local config
+  if (require.cache && require.cache[configPath]) {
+    delete require.cache[configPath];
+  }
+
+  const Config = require('./config');
   const { PATHS, FILES, SETTINGS } = Config;
 
   const SCHEDULE_PATH = PATHS.SCHEDULE;
   const CONFIG_PATH = FILES.SETTINGS;
   const GENRE_CONFIG_PATH = FILES.GENRE_CONFIG;
-  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES;
+  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES || 360;
   let maxDailyMinutes = DEFAULT_MAX_DAILY_MINUTES;
 
   // 設定ファイルを読み込む
@@ -90,11 +97,12 @@ module.exports = async (params) => {
   async function getDailyTasks(date) {
     const year = moment(date).format("YYYY");
     const month = moment(date).format("MM");
-    const newPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
-    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${date}.md`;
+    const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
 
-    let file = app.vault.getAbstractFileByPath(newPath);
-    if (!file) file = app.vault.getAbstractFileByPath(oldPath);
+    // Check nested first
+    let file = app.vault.getAbstractFileByPath(nestedPath);
+    if (!file) file = app.vault.getAbstractFileByPath(flatPath);
 
     if (!file) return [];
 
@@ -270,19 +278,25 @@ module.exports = async (params) => {
     // 7. タスクを追加
     const year = moment(dateStr).format("YYYY");
     const month = moment(dateStr).format("MM");
+    const flatPath = `${SCHEDULE_PATH}/${dateStr}.md`;
     const yearFolder = `${SCHEDULE_PATH}/${year}`;
     const monthFolder = `${yearFolder}/${month}`;
-    const newPath = `${monthFolder}/${dateStr}.md`;
-    const oldPath = `${SCHEDULE_PATH}/${dateStr}.md`;
+    const nestedPath = `${monthFolder}/${dateStr}.md`;
 
-    let file = app.vault.getAbstractFileByPath(oldPath);
-    if (!file) file = app.vault.getAbstractFileByPath(newPath);
+    // Check nested first
+    let file = app.vault.getAbstractFileByPath(nestedPath);
+    if (!file) file = app.vault.getAbstractFileByPath(flatPath);
 
-    // ファイルが存在しない場合は作成 (新しい構造で)
+    // If file doesn't exist, create it in NESTED structure
     if (!file) {
-      if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
-      if (!app.vault.getAbstractFileByPath(monthFolder)) await app.vault.createFolder(monthFolder);
-      file = await app.vault.create(newPath, `## 今日のスケジュール\n\n`);
+      // Ensure folders exist
+      if (!app.vault.getAbstractFileByPath(yearFolder)) {
+        await app.vault.createFolder(yearFolder);
+      }
+      if (!app.vault.getAbstractFileByPath(monthFolder)) {
+        await app.vault.createFolder(monthFolder);
+      }
+      file = await app.vault.create(nestedPath, `## 今日のスケジュール\n\n`);
     }
 
     // タスク行を作成（締切日がある場合は追加）
@@ -295,14 +309,15 @@ module.exports = async (params) => {
 
     // 成功メッセージ
     const message = capacity.willExceed
-      ? `✅ タスクを追加しました（容量超過警告あり）\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`
-      : `✅ タスクを追加しました\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
+      ? `✅ タスクを追加しました\n先: ${file.path}\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分 (警告あり)`
+      : `✅ タスクを追加しました\n先: ${file.path}\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
 
-    new Notice(message, 3000);
+    new Notice(message, 5000);
+    // DEBUG: Explicitly show path for troubleshooting
+    new Notice(`Debug: Write Path: ${file.path}\nConfig Schedule: ${SCHEDULE_PATH}\n(CapacityFirst Script)`, 10000);
 
   } catch (error) {
     new Notice(`エラー: ${error.message}`);
     console.error(error);
   }
 };
-

@@ -23,7 +23,9 @@ try {
 
 const year = moment().format("YYYY");
 const month = moment().format("MM");
-const todayPage = dv.page(`${schedulePath}/${year}/${month}/${today}`) || dv.page(`${schedulePath}/${today}`);
+const flatPath = `${schedulePath}/${today}.md`;
+const nestedPath = `${schedulePath}/${year}/${month}/${today}.md`;
+const todayPage = dv.page(flatPath) || dv.page(nestedPath);
 const tasks = todayPage ? todayPage.file.tasks.where(t => t.text.includes("⏱️")).array() : [];
 
 let used = 0;

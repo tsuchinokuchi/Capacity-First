@@ -51,8 +51,14 @@ module.exports = async (params) => {
     for (let i = 0; i < days; i++) {
       const date = moment(start).add(i, 'days');
       const dateStr = date.format("YYYY-MM-DD");
-      const filePath = `${SCHEDULE_PATH}/${dateStr}.md`;
-      const file = app.vault.getAbstractFileByPath(filePath);
+      const year = date.format("YYYY");
+      const month = date.format("MM");
+
+      const flatPath = `${SCHEDULE_PATH}/${dateStr}.md`;
+      const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${dateStr}.md`;
+
+      let file = app.vault.getAbstractFileByPath(flatPath);
+      if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
 
       if (file) {
         const content = await app.vault.read(file);
@@ -108,8 +114,13 @@ module.exports = async (params) => {
 
   // ヘルパー関数: タスクが既に存在するかチェック
   async function taskExists(date, taskText) {
-    const filePath = `${SCHEDULE_PATH}/${date}.md`;
-    const file = app.vault.getAbstractFileByPath(filePath);
+    const flatPath = `${SCHEDULE_PATH}/${date}.md`;
+    const year = moment(date).format("YYYY");
+    const month = moment(date).format("MM");
+    const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
+
+    let file = app.vault.getAbstractFileByPath(flatPath);
+    if (!file) file = app.vault.getAbstractFileByPath(nestedPath);
     if (!file) return false;
 
     const content = await app.vault.read(file);

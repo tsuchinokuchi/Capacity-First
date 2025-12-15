@@ -5,17 +5,23 @@ module.exports = async (params) => {
   const { app, quickAddApi } = params;
 
   // 設定
-  // 設定
   const path = require('path');
-  const basePath = app.vault.adapter.basePath;
-  const configPath = path.join(basePath, 'scripts', 'config.js');
-  const Config = require(configPath);
+
+  // Use local config relative to this script
+  const configPath = path.join(__dirname, 'config.js');
+
+  // Clear cache for local config
+  if (require.cache && require.cache[configPath]) {
+    delete require.cache[configPath];
+  }
+
+  const Config = require('./config');
   const { PATHS, FILES, SETTINGS } = Config;
 
   const SCHEDULE_PATH = PATHS.SCHEDULE;
   const WORK_GRID_PATH = FILES.WEEKLY_GRID;
   const CONFIG_PATH = FILES.SETTINGS;
-  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES;
+  const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES || 360;
   let maxDailyMinutes = DEFAULT_MAX_DAILY_MINUTES;
 
   // 設定ファイルを読み込む
@@ -74,11 +80,11 @@ module.exports = async (params) => {
   async function getDailyTasks(date) {
     const year = moment(date).format("YYYY");
     const month = moment(date).format("MM");
-    const newPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
-    const oldPath = `${SCHEDULE_PATH}/${date}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${date}.md`;
+    const nestedPath = `${SCHEDULE_PATH}/${year}/${month}/${date}.md`;
 
-    let file = app.vault.getAbstractFileByPath(newPath);
-    if (!file) file = app.vault.getAbstractFileByPath(oldPath);
+    let file = app.vault.getAbstractFileByPath(nestedPath);
+    if (!file) file = app.vault.getAbstractFileByPath(flatPath);
 
     if (!file) return [];
 
@@ -247,11 +253,11 @@ module.exports = async (params) => {
     // 元のファイル(sourceDate)からタスクを削除
     const sourceYear = moment(sourceDate).format("YYYY");
     const sourceMonth = moment(sourceDate).format("MM");
-    const sourceNewPath = `${SCHEDULE_PATH}/${sourceYear}/${sourceMonth}/${sourceDate}.md`;
-    const sourceOldPath = `${SCHEDULE_PATH}/${sourceDate}.md`;
+    const sourceFlatPath = `${SCHEDULE_PATH}/${sourceDate}.md`;
+    const sourceNestedPath = `${SCHEDULE_PATH}/${sourceYear}/${sourceMonth}/${sourceDate}.md`;
 
-    let sourceFile = app.vault.getAbstractFileByPath(sourceNewPath);
-    if (!sourceFile) sourceFile = app.vault.getAbstractFileByPath(sourceOldPath);
+    let sourceFile = app.vault.getAbstractFileByPath(sourceFlatPath);
+    if (!sourceFile) sourceFile = app.vault.getAbstractFileByPath(sourceNestedPath);
     if (sourceFile) {
       const sourceContent = await app.vault.read(sourceFile);
       const sourceLines = sourceContent.split('\n');
@@ -262,18 +268,23 @@ module.exports = async (params) => {
     // 次の日のファイルにタスクを追加
     const targetYear = moment(targetDate).format("YYYY");
     const targetMonth = moment(targetDate).format("MM");
-    const targetYearFolder = `${SCHEDULE_PATH}/${targetYear}`;
-    const targetMonthFolder = `${targetYearFolder}/${targetMonth}`;
-    const nextNewPath = `${targetMonthFolder}/${targetDate}.md`;
-    const nextOldPath = `${SCHEDULE_PATH}/${targetDate}.md`;
+    const flatPath = `${SCHEDULE_PATH}/${targetDate}.md`;
+    const yearFolder = `${SCHEDULE_PATH}/${targetYear}`;
+    const monthFolder = `${yearFolder}/${targetMonth}`;
+    const nestedPath = `${monthFolder}/${targetDate}.md`;
 
-    let nextFile = app.vault.getAbstractFileByPath(nextOldPath);
-    if (!nextFile) nextFile = app.vault.getAbstractFileByPath(nextNewPath);
+    let nextFile = app.vault.getAbstractFileByPath(nestedPath);
+    if (!nextFile) nextFile = app.vault.getAbstractFileByPath(flatPath);
 
     if (!nextFile) {
-      if (!app.vault.getAbstractFileByPath(targetYearFolder)) await app.vault.createFolder(targetYearFolder);
-      if (!app.vault.getAbstractFileByPath(targetMonthFolder)) await app.vault.createFolder(targetMonthFolder);
-      nextFile = await app.vault.create(nextNewPath, `## 今日のスケジュール\n\n`);
+      // Ensure folders exist
+      if (!app.vault.getAbstractFileByPath(yearFolder)) {
+        await app.vault.createFolder(yearFolder);
+      }
+      if (!app.vault.getAbstractFileByPath(monthFolder)) {
+        await app.vault.createFolder(monthFolder);
+      }
+      nextFile = await app.vault.create(nestedPath, `## 今日のスケジュール\n\n`);
     }
 
     // 日付を更新したタスク行を作成
@@ -288,10 +299,10 @@ module.exports = async (params) => {
 
     // 成功メッセージ
     new Notice(`✅ タスクを ${targetDate} に移動しました`, 3000);
+    new Notice(`(CapacityFirst Script)`, 3000);
 
   } catch (error) {
     new Notice(`エラー: ${error.message}`);
     console.error(error);
   }
 };
-

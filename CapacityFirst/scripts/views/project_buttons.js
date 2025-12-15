@@ -182,19 +182,22 @@ if (type === "buttons") {
         // 8. Add to Schedule
         const year = moment(dateStr).format("YYYY");
         const month = moment(dateStr).format("MM");
-        const folderPath = `スケジュール/${year}/${month}`;
-        const schedulePath = `${folderPath}/${dateStr}.md`;
+        const scheduleBasePath = "CapacityFirst/スケジュール";
+        const flatPath = `${scheduleBasePath}/${dateStr}.md`;
+        const yearFolder = `${scheduleBasePath}/${year}`;
+        const monthFolder = `${yearFolder}/${month}`;
+        const nestedPath = `${monthFolder}/${dateStr}.md`;
 
-        if (!app.vault.getAbstractFileByPath(folderPath)) {
-            // Create folders recursively if needed (though only 2 levels here)
-            const yearFolder = `スケジュール/${year}`;
-            if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
-            if (!app.vault.getAbstractFileByPath(folderPath)) await app.vault.createFolder(folderPath);
+        // Check if nested file exists, otherwise use flat
+        let scheduleFile = app.vault.getAbstractFileByPath(nestedPath);
+        if (!scheduleFile) {
+            scheduleFile = app.vault.getAbstractFileByPath(flatPath);
         }
 
-        let scheduleFile = app.vault.getAbstractFileByPath(schedulePath);
         if (!scheduleFile) {
-            scheduleFile = await app.vault.create(schedulePath, "## 今日のスケジュール\n\n");
+            if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
+            if (!app.vault.getAbstractFileByPath(monthFolder)) await app.vault.createFolder(monthFolder);
+            scheduleFile = await app.vault.create(nestedPath, "## 今日のスケジュール\n\n");
         }
 
         const scheduleContent = await app.vault.read(scheduleFile);
@@ -293,11 +296,16 @@ if (type === "buttons") {
             const oldYear = moment(item.date).format("YYYY");
             const oldMonth = moment(item.date).format("MM");
             // Try new path first, then old path
-            let oldSchedulePath = `スケジュール/${oldYear}/${oldMonth}/${item.date}.md`;
+            const scheduleBasePath = "CapacityFirst/スケジュール";
+            let oldSchedulePath = `${scheduleBasePath}/${oldYear}/${oldMonth}/${item.date}.md`;
             let oldFile = app.vault.getAbstractFileByPath(oldSchedulePath);
             if (!oldFile) {
-                oldSchedulePath = `スケジュール/${item.date}.md`;
+                oldSchedulePath = `${scheduleBasePath}/${item.date}.md`;
                 oldFile = app.vault.getAbstractFileByPath(oldSchedulePath);
+            }
+            if (!oldFile) {
+                // Fallback to legacy path just in case
+                oldFile = app.vault.getAbstractFileByPath(`スケジュール/${item.date}.md`);
             }
             if (oldFile) {
                 const oldContent = await app.vault.read(oldFile);
@@ -311,17 +319,23 @@ if (type === "buttons") {
         // Update Schedule File
         const year = moment(dateStr).format("YYYY");
         const month = moment(dateStr).format("MM");
-        const folderPath = `スケジュール/${year}/${month}`;
-        const schedulePath = `${folderPath}/${dateStr}.md`;
+        const scheduleBasePath = "CapacityFirst/スケジュール";
 
-        if (!app.vault.getAbstractFileByPath(folderPath)) {
-            const yearFolder = `スケジュール/${year}`;
-            if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
-            if (!app.vault.getAbstractFileByPath(folderPath)) await app.vault.createFolder(folderPath);
+        const flatPath = `${scheduleBasePath}/${dateStr}.md`;
+        const yearFolder = `${scheduleBasePath}/${year}`;
+        const monthFolder = `${yearFolder}/${month}`;
+        const nestedPath = `${monthFolder}/${dateStr}.md`;
+
+        let scheduleFile = app.vault.getAbstractFileByPath(nestedPath);
+        if (!scheduleFile) {
+            scheduleFile = app.vault.getAbstractFileByPath(flatPath);
         }
 
-        let scheduleFile = app.vault.getAbstractFileByPath(schedulePath);
-        if (!scheduleFile) scheduleFile = await app.vault.create(schedulePath, "## 今日のスケジュール\n\n");
+        if (!scheduleFile) {
+            if (!app.vault.getAbstractFileByPath(yearFolder)) await app.vault.createFolder(yearFolder);
+            if (!app.vault.getAbstractFileByPath(monthFolder)) await app.vault.createFolder(monthFolder);
+            scheduleFile = await app.vault.create(nestedPath, "## 今日のスケジュール\n\n");
+        }
 
         let scheduleContent = await app.vault.read(scheduleFile);
         let addedCount = 0;
