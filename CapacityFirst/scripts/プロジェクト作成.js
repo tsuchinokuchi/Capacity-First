@@ -7,8 +7,7 @@ module.exports = async (params) => {
 
   // 設定
   const path = require('path');
-  const basePath = app.vault.adapter.basePath;
-  const configPath = path.join(basePath, 'scripts', 'config.js');
+  const configPath = path.join(__dirname, 'config.js');
   const Config = require(configPath);
   const { PATHS, FILES } = Config;
 
@@ -131,13 +130,13 @@ module.exports = async (params) => {
 
 ## 進捗
 \`\`\`dataviewjs
-await dv.view("scripts/views/project_buttons", { type: "progress" });
+await dv.view("CapacityFirst/scripts/views/project_buttons", { type: "progress" });
 \`\`\`
 
 ## サブタスク（1階層まで）
 
 \`\`\`dataviewjs
-await dv.view("scripts/views/project_buttons", { type: "buttons" });
+await dv.view("CapacityFirst/scripts/views/project_buttons", { type: "buttons" });
 \`\`\`
 
 ### サブタスク1

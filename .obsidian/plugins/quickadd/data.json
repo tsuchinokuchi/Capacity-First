@@ -12,7 +12,7 @@
           {
             "type": "UserScript",
             "name": "タスク追加",
-            "path": "scripts/タスク追加.js"
+            "path": "CapacityFirst/scripts/タスク追加.js"
           }
         ]
       },
@@ -30,7 +30,7 @@
           {
             "type": "UserScript",
             "name": "タスク移動",
-            "path": "scripts/タスク移動.js"
+            "path": "CapacityFirst/scripts/タスク移動.js"
           }
         ]
       },
@@ -48,7 +48,7 @@
           {
             "type": "UserScript",
             "name": "タスクプールからスケジュールに移動",
-            "path": "scripts/タスクプールからスケジュールに移動.js"
+            "path": "CapacityFirst/scripts/タスクプールからスケジュールに移動.js"
           }
         ]
       },
@@ -66,7 +66,7 @@
           {
             "type": "UserScript",
             "name": "繰り返しタスク展開",
-            "path": "scripts/繰り返しタスク展開.js"
+            "path": "CapacityFirst/scripts/繰り返しタスク展開.js"
           }
         ]
       },
@@ -84,7 +84,7 @@
           {
             "type": "UserScript",
             "name": "容量チェック",
-            "path": "scripts/容量チェック.js"
+            "path": "CapacityFirst/scripts/容量チェック.js"
           }
         ]
       },
@@ -102,7 +102,7 @@
           {
             "type": "UserScript",
             "name": "タスク完了",
-            "path": "scripts/タスク完了.js"
+            "path": "CapacityFirst/scripts/タスク完了.js"
           }
         ]
       },
@@ -120,7 +120,7 @@
           {
             "type": "UserScript",
             "name": "タスク削除",
-            "path": "scripts/タスク削除.js"
+            "path": "CapacityFirst/scripts/タスク削除.js"
           }
         ]
       },
@@ -138,7 +138,7 @@
           {
             "type": "UserScript",
             "name": "プロジェクト作成",
-            "path": "scripts/プロジェクト作成.js"
+            "path": "CapacityFirst/scripts/プロジェクト作成.js"
           }
         ]
       },
@@ -156,7 +156,7 @@
           {
             "type": "UserScript",
             "name": "サブタスク追加",
-            "path": "scripts/サブタスク追加.js"
+            "path": "CapacityFirst/scripts/サブタスク追加.js"
           }
         ]
       },
@@ -174,7 +174,7 @@
           {
             "type": "UserScript",
             "name": "サブタスク展開",
-            "path": "scripts/サブタスク展開.js"
+            "path": "CapacityFirst/scripts/サブタスク展開.js"
           }
         ]
       },
@@ -192,7 +192,7 @@
           {
             "type": "UserScript",
             "name": "進捗更新",
-            "path": "scripts/進捗更新.js"
+            "path": "CapacityFirst/scripts/進捗更新.js"
           }
         ]
       },
