@@ -8,15 +8,17 @@ module.exports = async (params) => {
   // 設定
   const path = require('path');
 
-  // Use local config relative to this script
-  const configPath = path.join(__dirname, 'config.js');
+  // Use vault base path to ensure correct absolute path resolution
+  // __dirname can resolve to electron internal paths in some contexts
+  const basePath = app.vault.adapter.getBasePath();
+  const configPath = path.join(basePath, 'CapacityFirst/scripts/config.js');
 
   // Clear cache for local config
   if (require.cache && require.cache[configPath]) {
     delete require.cache[configPath];
   }
 
-  const Config = require('./config');
+  const Config = require(configPath);
   const { PATHS, FILES, SETTINGS } = Config;
 
   const SCHEDULE_PATH = PATHS.SCHEDULE;
@@ -313,8 +315,6 @@ module.exports = async (params) => {
       : `✅ タスクを追加しました\n先: ${file.path}\n使用量: ${capacity.newTotal}分 / ${maxDailyMinutes}分`;
 
     new Notice(message, 5000);
-    // DEBUG: Explicitly show path for troubleshooting
-    new Notice(`Debug: Write Path: ${file.path}\nConfig Schedule: ${SCHEDULE_PATH}\n(CapacityFirst Script)`, 10000);
 
   } catch (error) {
     new Notice(`エラー: ${error.message}`);

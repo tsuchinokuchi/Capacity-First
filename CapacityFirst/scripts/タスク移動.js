@@ -8,7 +8,9 @@ module.exports = async (params) => {
   const path = require('path');
 
   // Use local config relative to this script
-  const configPath = path.join(__dirname, 'config.js');
+  // Use vault base path to ensure correct absolute path resolution
+  const basePath = app.vault.adapter.getBasePath();
+  const configPath = path.join(basePath, 'CapacityFirst/scripts/config.js');
 
   // Clear cache for local config
   if (require.cache && require.cache[configPath]) {

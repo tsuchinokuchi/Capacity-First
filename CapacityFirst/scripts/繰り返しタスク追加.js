@@ -6,7 +6,9 @@ module.exports = async (params) => {
 
     // 設定読み込み (Robust Local Load)
     const path = require('path');
-    const configPath = path.join(__dirname, 'config.js');
+    // Use vault base path to ensure correct absolute path resolution
+    const basePath = app.vault.adapter.getBasePath();
+    const configPath = path.join(basePath, 'CapacityFirst/scripts/config.js');
     if (require.cache && require.cache[configPath]) {
         delete require.cache[configPath];
     }

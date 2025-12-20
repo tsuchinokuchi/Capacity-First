@@ -8,62 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "2e7f8702ea209ea3",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "プロジェクト/テストプロジェクト.md",
-                "mode": "preview",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "テストプロジェクト"
-            }
-          },
-          {
-            "id": "1dbf638cb11434e2",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "スケジュール/2025/12/2025-12-13.md",
-                "mode": "preview",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "2025-12-13"
-            }
-          },
-          {
-            "id": "74384abb230c73e1",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "スケジュール/2025/12/2025-12-11.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "2025-12-11"
-            }
-          },
-          {
-            "id": "bf9c691cbbe57e61",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "CapacityFirst/README.md",
-                "mode": "preview",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "README"
-            }
-          },
-          {
             "id": "fb4a31996c85fc61",
             "type": "leaf",
             "state": {
@@ -76,9 +20,37 @@
               "icon": "lucide-file",
               "title": "タスク管理ダッシュボード"
             }
+          },
+          {
+            "id": "6c90d4870c46322b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "CapacityFirst/プロジェクト/プロジェクトテスト.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "プロジェクトテスト"
+            }
+          },
+          {
+            "id": "26aee23bdb4e5077",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "動作確認チェックリスト.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "動作確認チェックリスト"
+            }
           }
         ],
-        "currentTab": 4
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -241,12 +213,18 @@
       "templater-obsidian:Templater": false
     }
   },
-  "active": "fb4a31996c85fc61",
+  "active": "f19c388110482485",
   "lastOpenFiles": [
-    "CapacityFirst/スケジュールテンプレート.md",
+    "CapacityFirst/テンプレート/プロジェクトテンプレート.md",
     "CapacityFirst/タスク管理ダッシュボード.md",
+    "CapacityFirst/プロジェクト/プロジェクトテスト.md",
+    "CapacityFirst/テンプレート/README.md",
+    "CapacityFirst/テンプレート",
+    "CapacityFirst/プロジェクト/README.md",
+    "CapacityFirst/プロジェクト",
     "動作確認チェックリスト.md",
     "CapacityFirst/README.md",
+    "CapacityFirst/スケジュールテンプレート.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-22.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-21.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-20.md",
@@ -267,18 +245,12 @@
     "スケジュール/2025/12/2025-12-07.md",
     "CapacityFirst.zip",
     "CapacityFirst.zip.tmp",
-    "CapacityFirst/config/settings.json",
-    "CapacityFirst/config",
     "CapacityFirst/ジャンル設定.md",
     "スケジュール/2025/12/2025-12-15.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-31.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-30.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-29.md",
     "CapacityFirst/スケジュール/2025/12/2025-12-28.md",
-    "CapacityFirst/スケジュール/2025/12/2025-12-27.md",
-    "CapacityFirst/スケジュール/2025/12/2025-12-26.md",
-    "CapacityFirst/スケジュール/2025/12/2025-12-25.md",
-    "CapacityFirst/スケジュール/2025/12/2025-12-24.md",
     "Pasted image 20251207221943.png",
     "Pasted image 20251207220632.png"
   ]
