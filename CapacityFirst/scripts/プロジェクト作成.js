@@ -14,7 +14,7 @@ module.exports = async (params) => {
   const { PATHS, FILES } = Config;
 
   const PROJECT_PATH = PATHS.PROJECT;
-  const TEMPLATE_PATH = `${PATHS.PROJECT}/プロジェクトテンプレート.md`;
+  const TEMPLATE_PATH = `${PATHS.TEMPLATE}/プロジェクトテンプレート.md`;
 
   try {
     // 1. プロジェクト名を入力
