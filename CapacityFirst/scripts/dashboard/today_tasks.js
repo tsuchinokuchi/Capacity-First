@@ -176,7 +176,7 @@ const completeBtn = createBtn("完了", "✅", "secondary", () => processSelecte
 const deleteBtn = createBtn("削除", "🗑️", "secondary", () => processSelectedTasks("delete"));
 
 // 4. Move to Pool
-const poolBtn = createBtn("タスクプールへ", "📦", "secondary", () => new Notice("未実装: プール移動"));
+const poolBtn = createBtn("タスクプールへ", "📦", "secondary", () => processSelectedTasks("move_to_pool"));
 
 // 5. Change Date
 const dateBtn = createBtn("日付変更", "📅", "secondary", () => processSelectedTasks("move_date"));
@@ -413,6 +413,15 @@ async function processSelectedTasks(action) {
                 } catch (e) {
                     console.error(`Project sync error: ${e.message}`);
                 }
+            } else if (action === "move_to_pool") {
+                // Remove date tag and checkbox state for pool
+                let poolText = lineContent
+                    .replace(/^- \[[x]\]/, "- [ ]") // Ensure uncompleted
+                    .replace(/📅 \d{4}-\d{2}-\d{2}/, "") // Remove date
+                    .trim();
+
+                movedTaskTexts.push(poolText);
+                linesToModify.set(lineNum, null);
             }
         }
 
@@ -422,9 +431,16 @@ async function processSelectedTasks(action) {
             });
         } else if (action === "delete") {
             tasksToProcess.forEach(task => syncProjectTask(task.text, "delete"));
+        } else if (action === "move_to_pool") {
+            // For now, treat move to pool as deleting from schedule (project keeps it? or un-schedule it?)
+            // Usually moving to pool means "unscheduling". 
+            // If the task has a project link, we probably want to remove the date from the project file too?
+            // For safety, let's just leave it in project (or remove date tag).
+            // Let's implement "remove_date" action for project sync.
+            tasksToProcess.forEach(task => syncProjectTask(task.text, "remove_date"));
         }
 
-        if (action === "delete" || action === "move_date") {
+        if (action === "delete" || action === "move_date" || action === "move_to_pool") {
             lines = lines.filter((_, idx) => !linesToModify.has(idx) || linesToModify.get(idx) !== null);
             modified = true;
         } else {
@@ -462,6 +478,23 @@ async function processSelectedTasks(action) {
                 const newTargetContent = targetContent + (targetContent.endsWith("\n") ? "" : "\n") + movedTaskTexts.join("\n") + "\n";
                 await app.vault.modify(targetFile, newTargetContent);
                 new Notice(`${movedTaskTexts.length}件のタスクを ${targetDateStr} に移動しました`);
+            } else if (action === "move_to_pool") {
+                const poolPath = config.PATHS.POOL || "CapacityFirst/スケジュール/タスクプール.md";
+                let poolFile = app.vault.getAbstractFileByPath(poolPath);
+                if (!poolFile) {
+                    // Try finding it
+                    const files = app.vault.getFiles();
+                    poolFile = files.find(f => f.name === 'タスクプール.md' && f.path.includes('CapacityFirst'));
+                }
+
+                if (poolFile) {
+                    const poolContent = await app.vault.read(poolFile);
+                    const newPoolContent = poolContent + (poolContent.endsWith("\n") ? "" : "\n") + movedTaskTexts.join("\n") + "\n";
+                    await app.vault.modify(poolFile, newPoolContent);
+                    new Notice(`${movedTaskTexts.length}件のタスクをタスクプールに移動しました`);
+                } else {
+                    new Notice("エラー: タスクプールファイルが見つかりません");
+                }
             } else {
                 new Notice(`${selectedIndices.size}件のタスクを処理しました`);
             }
@@ -556,6 +589,13 @@ async function syncProjectTask(taskLine, action, params = {}) {
         }
         lines[targetIdx] = line;
         modified = true;
+    } else if (action === "remove_date") {
+        let line = lines[targetIdx];
+        if (line.match(/📅 \d{4}-\d{2}-\d{2}/)) {
+            line = line.replace(/📅 \d{4}-\d{2}-\d{2}/, "").trim();
+            lines[targetIdx] = line;
+            modified = true;
+        }
     }
 
     if (modified) {

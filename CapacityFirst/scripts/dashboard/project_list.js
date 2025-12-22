@@ -79,7 +79,7 @@ const addBtn = btnContainer.createEl("button", { cls: "dashboard-btn primary", t
 addBtn.onclick = () => app.commands.executeCommandById("quickadd:choice:project-create");
 
 // --- Data Loading ---
-const projects = dv.pages(`"${config.PROJECT_DIR}"`)
+const projects = dv.pages(`"${config.PATHS.PROJECT}"`)
     .where(p => !p.file.name.includes("テンプレート") && p.file.name !== "README")
     .map(p => {
         const tasks = p.file.tasks;

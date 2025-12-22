@@ -144,7 +144,34 @@ createYearBtn.onclick = async () => {
         new Notice(`Error: ${e.message}`);
         console.error(e);
     }
-}
+};
+
+const moveToPoolBtn = adminContainer.createEl("button", { text: "📥 タスクプールへ移動" });
+moveToPoolBtn.style.marginLeft = "10px";
+moveToPoolBtn.onclick = async () => {
+    try {
+        const scriptPath = `${root}/scripts/タスクプールへ移動.js`;
+        const absPath = app.vault.adapter.basePath + "/" + scriptPath;
+        // Invalidate cache
+        const absPathDeep = absPath.replace(/\//g, "\\");
+        if (require.cache[absPath]) delete require.cache[absPath];
+        if (require.cache[absPathDeep]) delete require.cache[absPathDeep];
+
+        // Robust require
+        let script;
+        try {
+            script = require(absPath);
+        } catch (e) {
+            // Fallback for Windows path issues if any
+            script = require(absPathDeep);
+        }
+
+        await script({ app: app, quickAddApi: app.plugins.plugins.quickadd.api });
+    } catch (e) {
+        new Notice(`Error: ${e.message}`);
+        console.error(e);
+    }
+};
 // Stray brace removed
 
 const addRecurringBtn = adminContainer.createEl("button", { text: "🔁 繰り返しタスク追加" });

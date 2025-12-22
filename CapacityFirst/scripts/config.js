@@ -13,6 +13,7 @@ module.exports = {
         TEMPLATE: joinPath(BASE_PATH, "テンプレート"),
         CONFIG: joinPath(BASE_PATH, "config"),
         SCRIPTS: joinPath(BASE_PATH, "scripts"),
+        POOL: joinPath(BASE_PATH, "スケジュール/タスクプール.md"),
     },
     // ファイルパス
     FILES: {
