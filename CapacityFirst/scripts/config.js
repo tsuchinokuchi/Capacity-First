@@ -20,7 +20,7 @@ module.exports = {
         SCHEDULE_TEMPLATE: joinPath(BASE_PATH, "スケジュールテンプレート.md"),
         SETTINGS: joinPath(BASE_PATH, "config/settings.json"),
         GENRE_CONFIG: joinPath(BASE_PATH, "ジャンル設定.md"),
-        WEEKLY_GRID: joinPath(BASE_PATH, "週勤務グリッド.md"),
+
     },
     // その他設定
     SETTINGS: {

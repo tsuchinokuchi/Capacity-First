@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const targetDir = 'c:\\Users\\Shunt\\Desktop\\プロジェクト管理\\タスク管理\\スケジュール';
+const targetDir = path.join(__dirname, '../スケジュール/2025/12');
 const templateContent = `## 今日のスケジュール
 
 \`\`\`button

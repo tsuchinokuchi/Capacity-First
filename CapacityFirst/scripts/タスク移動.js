@@ -21,7 +21,7 @@ module.exports = async (params) => {
   const { PATHS, FILES, SETTINGS } = Config;
 
   const SCHEDULE_PATH = PATHS.SCHEDULE;
-  const WORK_GRID_PATH = FILES.WEEKLY_GRID;
+
   const CONFIG_PATH = FILES.SETTINGS;
   const DEFAULT_MAX_DAILY_MINUTES = SETTINGS.DEFAULT_MAX_DAILY_MINUTES || 360;
   let maxDailyMinutes = DEFAULT_MAX_DAILY_MINUTES;
@@ -42,41 +42,7 @@ module.exports = async (params) => {
     }
   }
 
-  // ヘルパー関数: 出勤日リストを取得
-  async function getWorkDays() {
-    const file = app.vault.getAbstractFileByPath(WORK_GRID_PATH);
-    if (!file) return [];
 
-    const content = await app.vault.read(file);
-    // 週勤務グリッドから出勤日を抽出
-    // 実装は週勤務グリッドの構造に依存
-    // とりあえず、今日から2週間先までの日付を返す
-    const workDays = [];
-    const today = moment();
-    for (let i = 0; i < 14; i++) {
-      const date = moment(today).add(i, 'days');
-      workDays.push(date.format("YYYY-MM-DD"));
-    }
-
-    // TODO: 週勤務グリッドから実際の出勤日を抽出する処理を実装
-    return workDays;
-  }
-
-  // ヘルパー関数: 次の出勤日を検索
-  async function findNextWorkDay(startDate) {
-    const workDays = await getWorkDays();
-    const start = moment(startDate);
-
-    for (let i = 1; i <= 14; i++) {
-      const nextDate = moment(start).add(i, 'days');
-      const dateStr = nextDate.format("YYYY-MM-DD");
-      if (workDays.includes(dateStr)) {
-        return dateStr;
-      }
-    }
-
-    return null;
-  }
 
   // ヘルパー関数: 日付のタスクを取得
   async function getDailyTasks(date) {

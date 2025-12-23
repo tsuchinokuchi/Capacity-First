@@ -287,15 +287,15 @@ module.exports = async (params) => {
       while (current.isSameOrBefore(endDate)) {
         if (current.day() === targetDay) {
           const dateStr = current.format("YYYY-MM-DD");
-          if (workDays.includes(dateStr)) {
-            const exists = await taskExists(dateStr, task.text);
-            if (!exists) {
-              await addTaskToDate(dateStr, task.line);
-              addedCount++;
-            } else {
-              skippedCount++;
-            }
+          // if (workDays.includes(dateStr)) { // 出勤日判定廃止
+          const exists = await taskExists(dateStr, task.text);
+          if (!exists) {
+            await addTaskToDate(dateStr, task.line);
+            addedCount++;
+          } else {
+            skippedCount++;
           }
+          // }
         }
         current.add(1, 'day');
       }
@@ -315,15 +315,15 @@ module.exports = async (params) => {
       while (current.isSameOrBefore(endDate)) {
         if (current.date() === targetDayOfMonth) {
           const dateStr = current.format("YYYY-MM-DD");
-          if (workDays.includes(dateStr)) {
-            const exists = await taskExists(dateStr, task.text);
-            if (!exists) {
-              await addTaskToDate(dateStr, task.line);
-              addedCount++;
-            } else {
-              skippedCount++;
-            }
+          // if (workDays.includes(dateStr)) { // 出勤日判定廃止
+          const exists = await taskExists(dateStr, task.text);
+          if (!exists) {
+            await addTaskToDate(dateStr, task.line);
+            addedCount++;
+          } else {
+            skippedCount++;
           }
+          // }
         }
         current.add(1, 'day');
       }
