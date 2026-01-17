@@ -4,4 +4,5 @@ export interface Task {
     isCompleted: boolean;
     createdAt: string; // ISO String
     scheduledDate?: string; // YYYY-MM-DD
+    estimatedTime?: number; // Minutes
 }

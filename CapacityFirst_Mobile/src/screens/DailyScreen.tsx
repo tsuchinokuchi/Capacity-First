@@ -127,6 +127,13 @@ export default function DailyScreen() {
                 initialEstimatedTime={editingTask?.estimatedTime}
                 title={editingTask ? "Edit Task" : "Add Task"}
                 submitLabel={editingTask ? "Update" : "Add"}
+                validateCapacity={(date, newEstimatedTime) => {
+                    // Check logic
+                    const dateStr = toISODateString(date);
+                    const tasksForDate = tasks.filter(t => t.scheduledDate === dateStr && t.id !== editingTask?.id);
+                    const currentTotal = tasksForDate.reduce((sum, t) => sum + (t.estimatedTime || 0), 0);
+                    return (currentTotal + newEstimatedTime) <= dailyCapacityMinutes;
+                }}
             />
 
             <SettingsDialog

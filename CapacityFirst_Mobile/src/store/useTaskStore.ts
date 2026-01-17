@@ -10,7 +10,7 @@ const generateId = () => {
 
 interface TaskState {
     tasks: Task[];
-    addTask: (title: string, scheduledDate?: string) => void;
+    addTask: (title: string, scheduledDate?: string, estimatedTime?: number) => void;
     updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void;
     toggleTask: (id: string) => void;
     deleteTask: (id: string) => void;
@@ -21,7 +21,7 @@ export const useTaskStore = create<TaskState>()(
     persist(
         (set) => ({
             tasks: [],
-            addTask: (title, scheduledDate) =>
+            addTask: (title, scheduledDate, estimatedTime) =>
                 set((state) => ({
                     tasks: [
                         ...state.tasks,
@@ -31,6 +31,7 @@ export const useTaskStore = create<TaskState>()(
                             isCompleted: false,
                             createdAt: new Date().toISOString(),
                             scheduledDate,
+                            estimatedTime,
                         },
                     ],
                 })),
@@ -50,6 +51,7 @@ export const useTaskStore = create<TaskState>()(
                 set((state) => ({
                     tasks: state.tasks.filter((task) => task.id !== id),
                 })),
+            clearAllTasks: () => set({ tasks: [] }),
         }),
         {
             name: 'task-storage',

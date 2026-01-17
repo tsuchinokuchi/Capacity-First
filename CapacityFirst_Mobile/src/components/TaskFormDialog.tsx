@@ -23,8 +23,9 @@ export default function TaskFormDialog({
     initialDate,
     initialEstimatedTime,
     submitLabel = 'Add',
-    title = 'Add Task'
-}: TaskFormDialogProps) {
+    title = 'Add Task',
+    validateCapacity
+}: TaskFormDialogProps & { validateCapacity?: (date: Date, minutes: number) => boolean }) {
     const [taskTitle, setTaskTitle] = useState(initialTitle);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
     const [estimatedTime, setEstimatedTime] = useState<number | undefined>(initialEstimatedTime);
@@ -40,10 +41,40 @@ export default function TaskFormDialog({
         }
     }, [visible, initialTitle, initialDate, initialEstimatedTime]);
 
-    const handleSubmit = () => {
-        if (taskTitle.trim().length === 0) return;
+    const handleConfirmSubmit = () => {
         onSubmit(taskTitle, selectedDate, estimatedTime);
         onDismiss();
+    };
+
+    const handleSubmit = () => {
+        if (taskTitle.trim().length === 0) return;
+
+        // Capacity Check Logic
+        if (validateCapacity && selectedDate && estimatedTime) {
+            const isSafe = validateCapacity(selectedDate, estimatedTime);
+            if (!isSafe) {
+                // Determine if we are on web or native for Alert
+                if (Platform.OS === 'web') {
+                    const confirm = window.confirm("Capacity exceeded! Do you want to add this task anyway?");
+                    if (confirm) {
+                        handleConfirmSubmit();
+                    }
+                } else {
+                    const { Alert } = require('react-native');
+                    Alert.alert(
+                        "Capacity Exceeded",
+                        "This task will exceed your daily capacity. Add anyway?",
+                        [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Add", onPress: handleConfirmSubmit }
+                        ]
+                    );
+                }
+                return;
+            }
+        }
+
+        handleConfirmSubmit();
     };
 
     const onDateChange = (event: any, date?: Date) => {
