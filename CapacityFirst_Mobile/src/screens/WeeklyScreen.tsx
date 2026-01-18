@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Text, Checkbox, Card, IconButton } from 'react-native-paper';
 import { useTaskStore } from '../store/useTaskStore';
 import { Task } from '../types/Task';
@@ -14,7 +14,7 @@ export default function WeeklyScreen() {
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-    const weekDates = getWeekDates();
+    const weekDates = getWeekDates(new Date());
 
     const openAddDialog = (date: Date) => {
         setSelectedDate(date);
@@ -64,7 +64,16 @@ export default function WeeklyScreen() {
             <IconButton
                 icon="trash-can-outline"
                 size={16}
-                onPress={() => deleteTask(task.id)}
+                onPress={() => {
+                    Alert.alert(
+                        "Delete Task",
+                        "Are you sure you want to delete this task?",
+                        [
+                            { text: "Cancel", style: "cancel" },
+                            { text: "Delete", style: "destructive", onPress: () => deleteTask(task.id) }
+                        ]
+                    );
+                }}
             />
         </View>
     );
@@ -185,5 +194,21 @@ const styles = StyleSheet.create({
         color: '#ccc',
         fontStyle: 'italic',
         fontSize: 12,
+    },
+    taskTextContainer: {
+        flex: 1,
+        marginLeft: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
+    timeBadgeSmall: {
+        backgroundColor: '#e0e0e0',
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 3,
+        fontSize: 10,
+        color: '#333',
+        marginLeft: 4,
     },
 });

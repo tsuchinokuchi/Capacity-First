@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, FlatList } from 'react-native';
+import { StyleSheet, View, FlatList, Alert } from 'react-native';
 import { Text, Checkbox, Card, IconButton, FAB } from 'react-native-paper';
 import { useTaskStore } from '../store/useTaskStore';
 import { Task } from '../types/Task';
@@ -67,7 +67,16 @@ export default function PoolScreen() {
                 <IconButton
                     icon="trash-can-outline"
                     size={20}
-                    onPress={() => deleteTask(item.id)}
+                    onPress={() => {
+                        Alert.alert(
+                            "Delete Task",
+                            "Are you sure you want to delete this task?",
+                            [
+                                { text: "Cancel", style: "cancel" },
+                                { text: "Delete", style: "destructive", onPress: () => deleteTask(item.id) }
+                            ]
+                        );
+                    }}
                 />
             </Card.Content>
         </Card>
@@ -160,5 +169,20 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
         backgroundColor: '#018786', // Teal darken
+    },
+    taskTextWrapper: {
+        flex: 1,
+        marginLeft: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+    },
+    timeBadge: {
+        backgroundColor: '#e0e0e0',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        color: '#333',
+        marginLeft: 8,
     },
 });
