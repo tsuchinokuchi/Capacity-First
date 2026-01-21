@@ -1,18 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
-import { Dialog, Portal, TextInput, Button, Text } from 'react-native-paper';
+import { Dialog, Portal, TextInput, Button, Text, SegmentedButtons, IconButton, useTheme } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDate } from '../utils/DateUtils';
+import { AppTheme } from '../theme/theme';
+import { useSettingsStore } from '../store/useSettingsStore';
+import { Chip } from 'react-native-paper'; // Import Chip here too
 
 interface TaskFormDialogProps {
     visible: boolean;
     onDismiss: () => void;
-    onSubmit: (title: string, date?: Date, estimatedTime?: number) => void;
+    onSubmit: (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[]) => void;
     initialTitle?: string;
-    initialDate?: Date; // undefined means "Undecided"
+    initialDate?: Date;
     initialEstimatedTime?: number;
+    initialNotes?: string;
+    initialTags?: string[];
     submitLabel?: string;
     title?: string;
+    validateCapacity?: (date: Date, minutes: number) => boolean;
+    taskId?: string;
 }
 
 export default function TaskFormDialog({
@@ -22,13 +29,31 @@ export default function TaskFormDialog({
     initialTitle = '',
     initialDate,
     initialEstimatedTime,
+    initialNotes = '',
+    initialTags = [],
     submitLabel = 'Add',
     title = 'Add Task',
-    validateCapacity
-}: TaskFormDialogProps & { validateCapacity?: (date: Date, minutes: number) => boolean }) {
+    validateCapacity,
+    taskId
+}: TaskFormDialogProps) {
+    const theme = useTheme<AppTheme>();
+    const { tags } = useSettingsStore();
+
     const [taskTitle, setTaskTitle] = useState(initialTitle);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
     const [estimatedTime, setEstimatedTime] = useState<number | undefined>(initialEstimatedTime);
+    const [notes, setNotes] = useState(initialNotes);
+    const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
+
+    const titleRef = useRef<any>(null);
+    const notesRef = useRef<any>(null);
+
+    // Repeat State
+    const [repeatValue, setRepeatValue] = useState<string>('none'); // none, daily, weekly, custom
+    // Custom Config State
+    const [customFreq, setCustomFreq] = useState<'daily' | 'weekly'>('weekly');
+    const [customInterval, setCustomInterval] = useState<string>('1');
+    const [customDays, setCustomDays] = useState<number[]>([]); // 0-6
 
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
@@ -36,28 +61,38 @@ export default function TaskFormDialog({
     useEffect(() => {
         if (visible) {
             setTaskTitle(initialTitle);
-            setSelectedDate(initialDate);
+            const dateToUse = initialDate || new Date();
+            setSelectedDate(dateToUse);
             setEstimatedTime(initialEstimatedTime);
+            setNotes(initialNotes);
+            setSelectedTags(initialTags || []);
+            setRepeatValue('none');
+            // Reset custom state
+            setCustomFreq('weekly');
+            setCustomInterval('1');
+            setCustomDays(dateToUse ? [dateToUse.getDay()] : []);
         }
-    }, [visible, initialTitle, initialDate, initialEstimatedTime]);
+    }, [visible, taskId]);
 
-    const handleConfirmSubmit = () => {
-        onSubmit(taskTitle, selectedDate, estimatedTime);
-        onDismiss();
-    };
+    // Update default custom days when date changes if not manually set? 
+    // For simplicity, let's just ensure if we switch to weekly, it defaults to the selected date's day.
+    useEffect(() => {
+        if (selectedDate && repeatValue === 'none') {
+            setCustomDays([selectedDate.getDay()]);
+        }
+    }, [selectedDate, repeatValue]);
 
     const handleSubmit = () => {
         if (taskTitle.trim().length === 0) return;
 
-        // Capacity Check Logic
+        // Capacity Check Logic (Keep existing...)
         if (validateCapacity && selectedDate && estimatedTime) {
             const isSafe = validateCapacity(selectedDate, estimatedTime);
             if (!isSafe) {
-                // Determine if we are on web or native for Alert
                 if (Platform.OS === 'web') {
                     const confirm = window.confirm("Capacity exceeded! Do you want to add this task anyway?");
                     if (confirm) {
-                        handleConfirmSubmit();
+                        confirmSubmit();
                     }
                 } else {
                     const { Alert } = require('react-native');
@@ -66,7 +101,7 @@ export default function TaskFormDialog({
                         "This task will exceed your daily capacity. Add anyway?",
                         [
                             { text: "Cancel", style: "cancel" },
-                            { text: "Add", onPress: handleConfirmSubmit }
+                            { text: "Add", onPress: confirmSubmit }
                         ]
                     );
                 }
@@ -74,7 +109,32 @@ export default function TaskFormDialog({
             }
         }
 
-        handleConfirmSubmit();
+        confirmSubmit();
+    };
+
+    const confirmSubmit = () => {
+        let rule: 'daily' | 'weekly' | undefined = undefined;
+        let config: any = undefined;
+
+        if (repeatValue === 'daily') {
+            rule = 'daily';
+            config = { frequency: 'daily', interval: 1 };
+        } else if (repeatValue === 'weekly') {
+            rule = 'weekly';
+            config = { frequency: 'weekly', interval: 1, daysOfWeek: customDays.length > 0 ? customDays : [selectedDate!.getDay()] };
+        } else if (repeatValue === 'custom') {
+            const interval = parseInt(customInterval) || 1;
+            config = {
+                frequency: customFreq,
+                interval: interval,
+                daysOfWeek: customFreq === 'weekly' ? customDays : undefined
+            };
+            // Map custom freq to rule for backward compat if needed, or just leave rule undefined
+            rule = customFreq;
+        }
+
+        onSubmit(taskTitle, selectedDate, estimatedTime, rule, config, notes, selectedTags);
+        onDismiss();
     };
 
     const onDateChange = (event: any, date?: Date) => {
@@ -120,11 +180,16 @@ export default function TaskFormDialog({
                 <Dialog.Title>{title}</Dialog.Title>
                 <Dialog.Content>
                     <TextInput
+                        ref={titleRef}
+                        key={visible ? `title-${taskId || 'new'}` : 'title-hidden'} // Force re-render on task switch
                         label="Task Title"
-                        value={taskTitle}
+                        defaultValue={taskTitle}
                         onChangeText={setTaskTitle}
                         style={styles.input}
                         autoFocus
+                        autoComplete="off"
+                        autoCorrect={false}
+                        spellCheck={false}
                     />
 
                     <View style={styles.dateRow}>
@@ -133,7 +198,7 @@ export default function TaskFormDialog({
                         </Text>
                         <View style={styles.dateActions}>
                             {selectedDate && (
-                                <Button mode="text" textColor="red" onPress={() => setSelectedDate(undefined)}>
+                                <Button mode="text" textColor={theme.colors.error} onPress={() => setSelectedDate(undefined)}>
                                     Clear
                                 </Button>
                             )}
@@ -164,6 +229,98 @@ export default function TaskFormDialog({
                         <Button mode="text" onPress={() => setShowTimePicker(true)}>Custom</Button>
                     </View>
 
+                    {/* Repeat Options */}
+                    {selectedDate && (
+                        <>
+                            <Text variant="bodyMedium" style={styles.sectionLabel}>Repeat</Text>
+                            <SegmentedButtons
+                                value={repeatValue}
+                                onValueChange={setRepeatValue}
+                                density="medium"
+                                buttons={[
+                                    { value: 'none', label: 'None' },
+                                    { value: 'daily', label: 'Daily' },
+                                    { value: 'weekly', label: 'Weekly' },
+                                    { value: 'custom', label: 'Custom' },
+                                ]}
+                                style={styles.segment}
+                            />
+
+                            {/* Weekly Days Selector */}
+                            {(repeatValue === 'weekly' || (repeatValue === 'custom' && customFreq === 'weekly')) && (
+                                <View style={styles.daysRow}>
+                                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
+                                        const isSelected = customDays.includes(index);
+                                        return (
+                                            <Button
+                                                key={index}
+                                                mode={isSelected ? 'contained' : 'outlined'}
+                                                onPress={() => {
+                                                    if (isSelected) {
+                                                        setCustomDays(customDays.filter(d => d !== index));
+                                                    } else {
+                                                        setCustomDays([...customDays, index]);
+                                                    }
+                                                }}
+                                                style={[styles.dayButton, { minWidth: 30, paddingHorizontal: 0 }]}
+                                                labelStyle={{ fontSize: 10, marginHorizontal: 0 }}
+                                                compact
+                                            >
+                                                {day}
+                                            </Button>
+                                        );
+                                    })}
+                                </View>
+                            )}
+
+                            {/* Custom Interval UI */}
+                            {repeatValue === 'custom' && (
+                                <View style={styles.customConfigRow}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text variant="bodySmall">Frequency</Text>
+                                        <SegmentedButtons
+                                            value={customFreq}
+                                            onValueChange={(v) => setCustomFreq(v as 'daily' | 'weekly')}
+                                            density="small"
+                                            buttons={[
+                                                { value: 'daily', label: 'Daily' },
+                                                { value: 'weekly', label: 'Weekly' },
+                                            ]}
+                                        />
+                                    </View>
+                                    <View style={{ width: 16 }} />
+                                    <View style={{ flex: 1 }}>
+                                        <Text variant="bodySmall">Interval (Every N)</Text>
+                                        <View style={styles.stepperContainer}>
+                                            <IconButton
+                                                icon="minus"
+                                                size={20}
+                                                onPress={() => {
+                                                    const current = parseInt(customInterval) || 1;
+                                                    if (current > 1) setCustomInterval((current - 1).toString());
+                                                }}
+                                                disabled={parseInt(customInterval) <= 1}
+                                                style={styles.stepperButton}
+                                            />
+                                            <Text variant="bodyLarge" style={styles.stepperValue}>
+                                                {customInterval}
+                                            </Text>
+                                            <IconButton
+                                                icon="plus"
+                                                size={20}
+                                                onPress={() => {
+                                                    const current = parseInt(customInterval) || 1;
+                                                    setCustomInterval((current + 1).toString());
+                                                }}
+                                                style={styles.stepperButton}
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
+                            )}
+                        </>
+                    )}
+
                     {showDatePicker && (
                         <DateTimePicker
                             value={selectedDate || new Date()}
@@ -178,10 +335,57 @@ export default function TaskFormDialog({
                             value={timePickerDate}
                             mode="time"
                             is24Hour={true}
-                            display="clock" // Ring style on Android
+                            display="clock"
                             onChange={onCustomTimeChange}
                         />
                     )}
+
+                    {/* Tags Selection */}
+                    {tags.length > 0 && (
+                        <>
+                            <Text variant="bodyMedium" style={styles.sectionLabel}>Tags</Text>
+                            <View style={styles.tagsContainer}>
+                                {tags.map(tag => {
+                                    const isSelected = selectedTags.includes(tag.id);
+                                    return (
+                                        <Chip
+                                            key={tag.id}
+                                            selected={isSelected}
+                                            onPress={() => {
+                                                if (isSelected) {
+                                                    setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                                                } else {
+                                                    setSelectedTags([...selectedTags, tag.id]);
+                                                }
+                                            }}
+                                            style={[styles.tagChip, isSelected && { backgroundColor: tag.color + '40' }]}
+                                            textStyle={{ color: isSelected ? 'black' : tag.color }}
+                                            mode="outlined"
+                                        >
+                                            {tag.name}
+                                        </Chip>
+                                    );
+                                })}
+                            </View>
+                        </>
+                    )}
+
+                    {/* Notes Input */}
+                    <Text variant="bodyMedium" style={styles.sectionLabel}>Notes</Text>
+                    <TextInput
+                        ref={notesRef}
+                        key={visible ? `notes-${taskId || 'new'}` : 'notes-hidden'}
+                        mode="outlined"
+                        placeholder="Add notes..."
+                        defaultValue={notes}
+                        onChangeText={setNotes}
+                        multiline
+                        numberOfLines={3}
+                        style={[styles.input, { height: 80 }]}
+                        autoComplete="off"
+                        autoCorrect={false}
+                        spellCheck={false}
+                    />
 
                 </Dialog.Content>
                 <Dialog.Actions>
@@ -189,7 +393,7 @@ export default function TaskFormDialog({
                     <Button onPress={handleSubmit}>{submitLabel}</Button>
                 </Dialog.Actions>
             </Dialog>
-        </Portal>
+        </Portal >
     );
 }
 
@@ -224,5 +428,48 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    segment: {
+        marginBottom: 8,
+    },
+    daysRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    dayButton: {
+        flex: 1,
+        marginHorizontal: 2,
+    },
+    customConfigRow: {
+        flexDirection: 'row',
+        marginBottom: 8,
+    },
+    stepperContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center', // Center content in the flex space
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 4,
+        marginTop: 4,
+        height: 40,
+    },
+    stepperButton: {
+        margin: 0,
+    },
+    stepperValue: {
+        minWidth: 20,
+        textAlign: 'center',
+    },
+    tagsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginBottom: 16,
+    },
+    tagChip: {
+        marginRight: 8,
+        marginBottom: 8,
     }
 });

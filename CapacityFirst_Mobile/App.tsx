@@ -3,6 +3,7 @@ import { StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import PagerView from 'react-native-pager-view';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { theme } from './src/theme/theme';
 
 /* Screens */
 import PoolScreen from './src/screens/PoolScreen';
@@ -12,7 +13,7 @@ import WeeklyScreen from './src/screens/WeeklyScreen';
 export default function App() {
   return (
     <SafeAreaProvider>
-      <PaperProvider>
+      <PaperProvider theme={theme}>
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="dark-content" />
           <PagerView style={styles.pagerView} initialPage={1}>
@@ -29,7 +30,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f6f6f6',
   },
   pagerView: {
     flex: 1,
