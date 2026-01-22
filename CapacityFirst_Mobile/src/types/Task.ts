@@ -1,3 +1,9 @@
+export interface Subtask {
+    id: string;
+    title: string;
+    isCompleted: boolean;
+}
+
 export interface Task {
     id: string;
     title: string;
@@ -9,6 +15,7 @@ export interface Task {
     repeatConfig?: RepeatConfig; // Advanced recurrence rule
     notes?: string;
     tags?: string[]; // Array of Tag IDs
+    subtasks?: Subtask[];
 }
 
 export interface Tag {

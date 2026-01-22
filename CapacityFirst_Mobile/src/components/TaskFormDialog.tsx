@@ -1,21 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, KeyboardAvoidingView, ScrollView } from 'react-native';
 import { Dialog, Portal, TextInput, Button, Text, SegmentedButtons, IconButton, useTheme } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDate } from '../utils/DateUtils';
 import { AppTheme } from '../theme/theme';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { Chip } from 'react-native-paper'; // Import Chip here too
+import { Chip, Checkbox } from 'react-native-paper'; // Import Chip here too
+import { Subtask, Task } from '../types/Task';
 
 interface TaskFormDialogProps {
     visible: boolean;
     onDismiss: () => void;
-    onSubmit: (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[]) => void;
+    onSubmit: (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[]) => void;
     initialTitle?: string;
     initialDate?: Date;
     initialEstimatedTime?: number;
     initialNotes?: string;
     initialTags?: string[];
+    initialSubtasks?: Subtask[];
     submitLabel?: string;
     title?: string;
     validateCapacity?: (date: Date, minutes: number) => boolean;
@@ -31,6 +33,7 @@ export default function TaskFormDialog({
     initialEstimatedTime,
     initialNotes = '',
     initialTags = [],
+    initialSubtasks = [],
     submitLabel = 'Add',
     title = 'Add Task',
     validateCapacity,
@@ -44,6 +47,10 @@ export default function TaskFormDialog({
     const [estimatedTime, setEstimatedTime] = useState<number | undefined>(initialEstimatedTime);
     const [notes, setNotes] = useState(initialNotes);
     const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
+    const [subtasks, setSubtasks] = useState<Subtask[]>(initialSubtasks);
+    const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+
+    const [subtaskInputKey, setSubtaskInputKey] = useState(0);
 
     const titleRef = useRef<any>(null);
     const notesRef = useRef<any>(null);
@@ -66,6 +73,8 @@ export default function TaskFormDialog({
             setEstimatedTime(initialEstimatedTime);
             setNotes(initialNotes);
             setSelectedTags(initialTags || []);
+            setSubtasks(initialSubtasks || []);
+            setNewSubtaskTitle('');
             setRepeatValue('none');
             // Reset custom state
             setCustomFreq('weekly');
@@ -133,7 +142,7 @@ export default function TaskFormDialog({
             rule = customFreq;
         }
 
-        onSubmit(taskTitle, selectedDate, estimatedTime, rule, config, notes, selectedTags);
+        onSubmit(taskTitle, selectedDate, estimatedTime, rule, config, notes, selectedTags, subtasks);
         onDismiss();
     };
 
@@ -179,214 +188,284 @@ export default function TaskFormDialog({
             <Dialog visible={visible} onDismiss={onDismiss}>
                 <Dialog.Title>{title}</Dialog.Title>
                 <Dialog.Content>
-                    <TextInput
-                        ref={titleRef}
-                        key={visible ? `title-${taskId || 'new'}` : 'title-hidden'} // Force re-render on task switch
-                        label="Task Title"
-                        defaultValue={taskTitle}
-                        onChangeText={setTaskTitle}
-                        style={styles.input}
-                        autoFocus
-                        autoComplete="off"
-                        autoCorrect={false}
-                        spellCheck={false}
-                    />
-
-                    <View style={styles.dateRow}>
-                        <Text variant="bodyLarge">
-                            Date: {selectedDate ? formatDate(selectedDate) : 'Undecided'}
-                        </Text>
-                        <View style={styles.dateActions}>
-                            {selectedDate && (
-                                <Button mode="text" textColor={theme.colors.error} onPress={() => setSelectedDate(undefined)}>
-                                    Clear
-                                </Button>
-                            )}
-                            <Button mode="text" onPress={() => setShowDatePicker(true)}>
-                                Change
-                            </Button>
-                        </View>
-                    </View>
-
-                    <Text variant="bodyMedium" style={styles.sectionLabel}>Estimated Time</Text>
-                    <View style={styles.presetRow}>
-                        {PRESET_TIMES.map((min) => (
-                            <Button
-                                key={min}
-                                mode={estimatedTime === min ? 'contained' : 'outlined'}
-                                onPress={() => setEstimatedTime(min)}
-                                style={styles.presetButton}
-                                compact
-                            >
-                                {min}m
-                            </Button>
-                        ))}
-                    </View>
-                    <View style={styles.customTimeRow}>
-                        <Text variant="bodyMedium">
-                            {estimatedTime ? `Selected: ${formatEstimatedTime(estimatedTime)}` : 'No estimate'}
-                        </Text>
-                        <Button mode="text" onPress={() => setShowTimePicker(true)}>Custom</Button>
-                    </View>
-
-                    {/* Repeat Options */}
-                    {selectedDate && (
-                        <>
-                            <Text variant="bodyMedium" style={styles.sectionLabel}>Repeat</Text>
-                            <SegmentedButtons
-                                value={repeatValue}
-                                onValueChange={setRepeatValue}
-                                density="medium"
-                                buttons={[
-                                    { value: 'none', label: 'None' },
-                                    { value: 'daily', label: 'Daily' },
-                                    { value: 'weekly', label: 'Weekly' },
-                                    { value: 'custom', label: 'Custom' },
-                                ]}
-                                style={styles.segment}
+                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+                        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+                            <TextInput
+                                ref={titleRef}
+                                key={visible ? `title-${taskId || 'new'}` : 'title-hidden'} // Force re-render on task switch
+                                label="Task Title"
+                                defaultValue={taskTitle}
+                                onChangeText={setTaskTitle}
+                                style={styles.input}
+                                autoFocus
+                                autoComplete="off"
+                                autoCorrect={false}
+                                spellCheck={false}
                             />
 
-                            {/* Weekly Days Selector */}
-                            {(repeatValue === 'weekly' || (repeatValue === 'custom' && customFreq === 'weekly')) && (
-                                <View style={styles.daysRow}>
-                                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
-                                        const isSelected = customDays.includes(index);
-                                        return (
-                                            <Button
-                                                key={index}
-                                                mode={isSelected ? 'contained' : 'outlined'}
-                                                onPress={() => {
-                                                    if (isSelected) {
-                                                        setCustomDays(customDays.filter(d => d !== index));
-                                                    } else {
-                                                        setCustomDays([...customDays, index]);
-                                                    }
-                                                }}
-                                                style={[styles.dayButton, { minWidth: 30, paddingHorizontal: 0 }]}
-                                                labelStyle={{ fontSize: 10, marginHorizontal: 0 }}
-                                                compact
-                                            >
-                                                {day}
-                                            </Button>
-                                        );
-                                    })}
+                            <View style={styles.dateRow}>
+                                <Text variant="bodyLarge">
+                                    Date: {selectedDate ? formatDate(selectedDate) : 'Undecided'}
+                                </Text>
+                                <View style={styles.dateActions}>
+                                    {selectedDate && (
+                                        <Button mode="text" textColor={theme.colors.error} onPress={() => setSelectedDate(undefined)}>
+                                            Clear
+                                        </Button>
+                                    )}
+                                    <Button mode="text" onPress={() => setShowDatePicker(true)}>
+                                        Change
+                                    </Button>
                                 </View>
+                            </View>
+
+                            <Text variant="bodyMedium" style={styles.sectionLabel}>Estimated Time</Text>
+                            <View style={styles.presetRow}>
+                                {PRESET_TIMES.map((min) => (
+                                    <Button
+                                        key={min}
+                                        mode={estimatedTime === min ? 'contained' : 'outlined'}
+                                        onPress={() => setEstimatedTime(min)}
+                                        style={styles.presetButton}
+                                        compact
+                                    >
+                                        {min}m
+                                    </Button>
+                                ))}
+                            </View>
+                            <View style={styles.customTimeRow}>
+                                <Text variant="bodyMedium">
+                                    {estimatedTime ? `Selected: ${formatEstimatedTime(estimatedTime)}` : 'No estimate'}
+                                </Text>
+                                <Button mode="text" onPress={() => setShowTimePicker(true)}>Custom</Button>
+                            </View>
+
+                            {/* Repeat Options */}
+                            {selectedDate && (
+                                <>
+                                    <Text variant="bodyMedium" style={styles.sectionLabel}>Repeat</Text>
+                                    <SegmentedButtons
+                                        value={repeatValue}
+                                        onValueChange={setRepeatValue}
+                                        density="medium"
+                                        buttons={[
+                                            { value: 'none', label: 'None' },
+                                            { value: 'daily', label: 'Daily' },
+                                            { value: 'weekly', label: 'Weekly' },
+                                            { value: 'custom', label: 'Custom' },
+                                        ]}
+                                        style={styles.segment}
+                                    />
+
+                                    {/* Weekly Days Selector */}
+                                    {(repeatValue === 'weekly' || (repeatValue === 'custom' && customFreq === 'weekly')) && (
+                                        <View style={styles.daysRow}>
+                                            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => {
+                                                const isSelected = customDays.includes(index);
+                                                return (
+                                                    <Button
+                                                        key={index}
+                                                        mode={isSelected ? 'contained' : 'outlined'}
+                                                        onPress={() => {
+                                                            if (isSelected) {
+                                                                setCustomDays(customDays.filter(d => d !== index));
+                                                            } else {
+                                                                setCustomDays([...customDays, index]);
+                                                            }
+                                                        }}
+                                                        style={[styles.dayButton, { minWidth: 30, paddingHorizontal: 0 }]}
+                                                        labelStyle={{ fontSize: 10, marginHorizontal: 0 }}
+                                                        compact
+                                                    >
+                                                        {day}
+                                                    </Button>
+                                                );
+                                            })}
+                                        </View>
+                                    )}
+
+                                    {/* Custom Interval UI */}
+                                    {repeatValue === 'custom' && (
+                                        <View style={styles.customConfigRow}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text variant="bodySmall">Frequency</Text>
+                                                <SegmentedButtons
+                                                    value={customFreq}
+                                                    onValueChange={(v) => setCustomFreq(v as 'daily' | 'weekly')}
+                                                    density="small"
+                                                    buttons={[
+                                                        { value: 'daily', label: 'Daily' },
+                                                        { value: 'weekly', label: 'Weekly' },
+                                                    ]}
+                                                />
+                                            </View>
+                                            <View style={{ width: 16 }} />
+                                            <View style={{ flex: 1 }}>
+                                                <Text variant="bodySmall">Interval (Every N)</Text>
+                                                <View style={styles.stepperContainer}>
+                                                    <IconButton
+                                                        icon="minus"
+                                                        size={20}
+                                                        onPress={() => {
+                                                            const current = parseInt(customInterval) || 1;
+                                                            if (current > 1) setCustomInterval((current - 1).toString());
+                                                        }}
+                                                        disabled={parseInt(customInterval) <= 1}
+                                                        style={styles.stepperButton}
+                                                    />
+                                                    <Text variant="bodyLarge" style={styles.stepperValue}>
+                                                        {customInterval}
+                                                    </Text>
+                                                    <IconButton
+                                                        icon="plus"
+                                                        size={20}
+                                                        onPress={() => {
+                                                            const current = parseInt(customInterval) || 1;
+                                                            setCustomInterval((current + 1).toString());
+                                                        }}
+                                                        style={styles.stepperButton}
+                                                    />
+                                                </View>
+                                            </View>
+                                        </View>
+                                    )}
+                                </>
                             )}
 
-                            {/* Custom Interval UI */}
-                            {repeatValue === 'custom' && (
-                                <View style={styles.customConfigRow}>
-                                    <View style={{ flex: 1 }}>
-                                        <Text variant="bodySmall">Frequency</Text>
-                                        <SegmentedButtons
-                                            value={customFreq}
-                                            onValueChange={(v) => setCustomFreq(v as 'daily' | 'weekly')}
-                                            density="small"
-                                            buttons={[
-                                                { value: 'daily', label: 'Daily' },
-                                                { value: 'weekly', label: 'Weekly' },
-                                            ]}
+                            {showDatePicker && (
+                                <DateTimePicker
+                                    value={selectedDate || new Date()}
+                                    mode="date"
+                                    display="default"
+                                    onChange={onDateChange}
+                                />
+                            )}
+
+                            {showTimePicker && (
+                                <DateTimePicker
+                                    value={timePickerDate}
+                                    mode="time"
+                                    is24Hour={true}
+                                    display="clock"
+                                    onChange={onCustomTimeChange}
+                                />
+                            )}
+
+                            {/* Tags Selection */}
+                            {tags.length > 0 && (
+                                <>
+                                    <Text variant="bodyMedium" style={styles.sectionLabel}>Tags</Text>
+                                    <View style={styles.tagsContainer}>
+                                        {tags.map(tag => {
+                                            const isSelected = selectedTags.includes(tag.id);
+                                            return (
+                                                <Chip
+                                                    key={tag.id}
+                                                    selected={isSelected}
+                                                    onPress={() => {
+                                                        if (isSelected) {
+                                                            setSelectedTags(selectedTags.filter(id => id !== tag.id));
+                                                        } else {
+                                                            setSelectedTags([...selectedTags, tag.id]);
+                                                        }
+                                                    }}
+                                                    style={[styles.tagChip, isSelected && { backgroundColor: tag.color + '40' }]}
+                                                    textStyle={{ color: isSelected ? 'black' : tag.color }}
+                                                    mode="outlined"
+                                                >
+                                                    {tag.name}
+                                                </Chip>
+                                            );
+                                        })}
+                                    </View>
+                                </>
+                            )}
+
+                            {/* Subtasks Section */}
+                            <Text variant="bodyMedium" style={styles.sectionLabel}>Subtasks</Text>
+                            <View style={styles.subtaskInputRow}>
+                                <TextInput
+                                    key={`subtask-input-${subtaskInputKey}`}
+                                    mode="outlined"
+                                    placeholder="Add subtask..."
+                                    defaultValue={newSubtaskTitle}
+                                    onChangeText={setNewSubtaskTitle}
+                                    style={{ flex: 1, backgroundColor: 'transparent' }}
+                                    dense
+                                    autoComplete="off"
+                                    autoCorrect={false}
+                                    spellCheck={false}
+                                    onSubmitEditing={() => {
+                                        if (newSubtaskTitle.trim()) {
+                                            const newSubtask: Subtask = {
+                                                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                                                title: newSubtaskTitle.trim(),
+                                                isCompleted: false
+                                            };
+                                            setSubtasks([...subtasks, newSubtask]);
+                                            setNewSubtaskTitle('');
+                                            setSubtaskInputKey(prev => prev + 1);
+                                        }
+                                    }}
+                                />
+                                <IconButton
+                                    icon="plus"
+                                    onPress={() => {
+                                        if (newSubtaskTitle.trim()) {
+                                            const newSubtask: Subtask = {
+                                                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                                                title: newSubtaskTitle.trim(),
+                                                isCompleted: false
+                                            };
+                                            setSubtasks([...subtasks, newSubtask]);
+                                            setNewSubtaskTitle('');
+                                            setSubtaskInputKey(prev => prev + 1);
+                                        }
+                                    }}
+                                />
+                            </View>
+                            <View style={styles.subtasksList}>
+                                {subtasks.map((st, index) => (
+                                    <View key={st.id || index} style={styles.subtaskItem}>
+                                        <Checkbox
+                                            status={st.isCompleted ? 'checked' : 'unchecked'}
+                                            onPress={() => {
+                                                const updated = subtasks.map(s => s.id === st.id ? { ...s, isCompleted: !s.isCompleted } : s);
+                                                setSubtasks(updated);
+                                            }}
+                                        />
+                                        <Text style={[styles.subtaskText, st.isCompleted && styles.completedTask]}>
+                                            {st.title}
+                                        </Text>
+                                        <IconButton
+                                            icon="close"
+                                            size={16}
+                                            onPress={() => {
+                                                setSubtasks(subtasks.filter(s => s.id !== st.id));
+                                            }}
                                         />
                                     </View>
-                                    <View style={{ width: 16 }} />
-                                    <View style={{ flex: 1 }}>
-                                        <Text variant="bodySmall">Interval (Every N)</Text>
-                                        <View style={styles.stepperContainer}>
-                                            <IconButton
-                                                icon="minus"
-                                                size={20}
-                                                onPress={() => {
-                                                    const current = parseInt(customInterval) || 1;
-                                                    if (current > 1) setCustomInterval((current - 1).toString());
-                                                }}
-                                                disabled={parseInt(customInterval) <= 1}
-                                                style={styles.stepperButton}
-                                            />
-                                            <Text variant="bodyLarge" style={styles.stepperValue}>
-                                                {customInterval}
-                                            </Text>
-                                            <IconButton
-                                                icon="plus"
-                                                size={20}
-                                                onPress={() => {
-                                                    const current = parseInt(customInterval) || 1;
-                                                    setCustomInterval((current + 1).toString());
-                                                }}
-                                                style={styles.stepperButton}
-                                            />
-                                        </View>
-                                    </View>
-                                </View>
-                            )}
-                        </>
-                    )}
-
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={selectedDate || new Date()}
-                            mode="date"
-                            display="default"
-                            onChange={onDateChange}
-                        />
-                    )}
-
-                    {showTimePicker && (
-                        <DateTimePicker
-                            value={timePickerDate}
-                            mode="time"
-                            is24Hour={true}
-                            display="clock"
-                            onChange={onCustomTimeChange}
-                        />
-                    )}
-
-                    {/* Tags Selection */}
-                    {tags.length > 0 && (
-                        <>
-                            <Text variant="bodyMedium" style={styles.sectionLabel}>Tags</Text>
-                            <View style={styles.tagsContainer}>
-                                {tags.map(tag => {
-                                    const isSelected = selectedTags.includes(tag.id);
-                                    return (
-                                        <Chip
-                                            key={tag.id}
-                                            selected={isSelected}
-                                            onPress={() => {
-                                                if (isSelected) {
-                                                    setSelectedTags(selectedTags.filter(id => id !== tag.id));
-                                                } else {
-                                                    setSelectedTags([...selectedTags, tag.id]);
-                                                }
-                                            }}
-                                            style={[styles.tagChip, isSelected && { backgroundColor: tag.color + '40' }]}
-                                            textStyle={{ color: isSelected ? 'black' : tag.color }}
-                                            mode="outlined"
-                                        >
-                                            {tag.name}
-                                        </Chip>
-                                    );
-                                })}
+                                ))}
                             </View>
-                        </>
-                    )}
 
-                    {/* Notes Input */}
-                    <Text variant="bodyMedium" style={styles.sectionLabel}>Notes</Text>
-                    <TextInput
-                        ref={notesRef}
-                        key={visible ? `notes-${taskId || 'new'}` : 'notes-hidden'}
-                        mode="outlined"
-                        placeholder="Add notes..."
-                        defaultValue={notes}
-                        onChangeText={setNotes}
-                        multiline
-                        numberOfLines={3}
-                        style={[styles.input, { height: 80 }]}
-                        autoComplete="off"
-                        autoCorrect={false}
-                        spellCheck={false}
-                    />
-
+                            {/* Notes Input */}
+                            <Text variant="bodyMedium" style={styles.sectionLabel}>Notes</Text>
+                            <TextInput
+                                ref={notesRef}
+                                key={visible ? `notes-${taskId || 'new'}` : 'notes-hidden'}
+                                mode="outlined"
+                                placeholder="Add notes..."
+                                defaultValue={notes}
+                                onChangeText={setNotes}
+                                multiline
+                                numberOfLines={3}
+                                style={[styles.input, { height: 80 }]}
+                                autoComplete="off"
+                                autoCorrect={false}
+                                spellCheck={false}
+                            />
+                        </ScrollView>
+                    </KeyboardAvoidingView>
                 </Dialog.Content>
                 <Dialog.Actions>
                     <Button onPress={onDismiss}>Cancel</Button>
@@ -471,5 +550,26 @@ const styles = StyleSheet.create({
     tagChip: {
         marginRight: 8,
         marginBottom: 8,
-    }
+    },
+    subtaskInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    subtasksList: {
+        marginBottom: 16,
+    },
+    subtaskItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    subtaskText: {
+        flex: 1,
+        marginLeft: 8,
+    },
+    completedTask: {
+        textDecorationLine: 'line-through',
+        color: '#888',
+    },
 });

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Task, RepeatConfig } from '../types/Task';
+import { Task, RepeatConfig, Subtask } from '../types/Task';
 
 // Simple ID generator to avoid external dependencies
 const generateId = () => {
@@ -10,10 +10,11 @@ const generateId = () => {
 
 interface TaskState {
     tasks: Task[];
-    addTask: (title: string, scheduledDate?: string, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: RepeatConfig, notes?: string, tags?: string[]) => void;
+    addTask: (title: string, scheduledDate?: string, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: RepeatConfig, notes?: string, tags?: string[], subtasks?: Subtask[]) => void;
     updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void;
     updateTasks: (ids: string[], updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void;
     toggleTask: (id: string) => void;
+    toggleSubtask: (taskId: string, subtaskId: string) => void;
     deleteTask: (id: string) => void;
     clearAllTasks: () => void;
     replenishTasks: () => void;
@@ -35,7 +36,7 @@ export const useTaskStore = create<TaskState>()(
     persist(
         (set) => ({
             tasks: [],
-            addTask: (title, scheduledDate, estimatedTime, repeatRule, repeatConfig, notes, tags) =>
+            addTask: (title, scheduledDate, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks) =>
                 set((state) => {
                     const newTasks: Task[] = [];
                     const baseDate = scheduledDate ? new Date(scheduledDate) : new Date();
@@ -71,6 +72,7 @@ export const useTaskStore = create<TaskState>()(
                         repeatConfig,
                         notes,
                         tags,
+                        subtasks,
                     });
 
                     if (config && scheduledDate) {
@@ -137,6 +139,18 @@ export const useTaskStore = create<TaskState>()(
                     tasks: state.tasks.map((task) =>
                         task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
                     ),
+                })),
+            toggleSubtask: (taskId, subtaskId) =>
+                set((state) => ({
+                    tasks: state.tasks.map((task) => {
+                        if (task.id !== taskId || !task.subtasks) return task;
+                        return {
+                            ...task,
+                            subtasks: task.subtasks.map(s =>
+                                s.id === subtaskId ? { ...s, isCompleted: !s.isCompleted } : s
+                            )
+                        };
+                    }),
                 })),
             deleteTask: (id) =>
                 set((state) => ({

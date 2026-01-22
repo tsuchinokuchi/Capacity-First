@@ -4,15 +4,16 @@ import { Text, Checkbox, Card, IconButton, useTheme, SegmentedButtons, Chip, But
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskStore } from '../store/useTaskStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { Task } from '../types/Task';
+import { Task, Subtask } from '../types/Task';
 import TaskFormDialog from '../components/TaskFormDialog';
+import TaskItem from '../components/TaskItem';
 import SettingsDialog from '../components/SettingsDialog';
 import { getWeekDates, toISODateString, formatDate, isSameDay } from '../utils/DateUtils';
 import { AppTheme } from '../theme/theme';
 
 export default function WeeklyScreen() {
     const theme = useTheme<AppTheme>();
-    const { tasks, addTask, updateTask, updateTasks, toggleTask, deleteTask } = useTaskStore();
+    const { tasks, addTask, updateTask, updateTasks, toggleTask, toggleSubtask, deleteTask } = useTaskStore();
     const { dailyCapacityMinutes, tags } = useSettingsStore();
 
     // Ensure safe default
@@ -97,17 +98,18 @@ export default function WeeklyScreen() {
         setDialogVisible(true);
     };
 
-    const handleSubmit = (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[]) => {
+    const handleSubmit = (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[]) => {
         if (editingTask) {
             updateTask(editingTask.id, {
                 title,
                 scheduledDate: date ? toISODateString(date) : undefined,
                 estimatedTime,
                 notes,
-                tags
+                tags,
+                subtasks
             });
         } else {
-            addTask(title, date ? toISODateString(date) : undefined, estimatedTime, repeatRule, repeatConfig, notes, tags);
+            addTask(title, date ? toISODateString(date) : undefined, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks);
         }
     };
 
@@ -115,12 +117,16 @@ export default function WeeklyScreen() {
         const isSelected = selectedTaskIds.includes(task.id);
 
         return (
-            <Card key={task.id} style={[
-                styles.taskCard,
-                task.isCompleted && { opacity: 0.6, backgroundColor: '#f0f0f0' },
-                isSelected && { backgroundColor: theme.colors.primaryContainer + '40', borderColor: theme.colors.primary, borderWidth: 1 }
-            ]}
-                onLongPress={() => handleLongPress(task.id)}
+            <TaskItem
+                key={task.id}
+                task={task}
+                tags={safeTags}
+                isSelectionMode={isSelectionMode}
+                isSelected={isSelected}
+                onToggle={toggleTask}
+                onSubtaskToggle={toggleSubtask}
+                onSelect={toggleSelection}
+                onLongPress={handleLongPress}
                 onPress={() => {
                     if (isSelectionMode) {
                         toggleSelection(task.id);
@@ -128,77 +134,7 @@ export default function WeeklyScreen() {
                         openEditDialog(task);
                     }
                 }}
-            >
-                <Card.Content style={styles.taskCardContent}>
-                    {isSelectionMode ? (
-                        <Checkbox
-                            status={isSelected ? 'checked' : 'unchecked'}
-                            onPress={() => toggleSelection(task.id)}
-                            color={theme.colors.primary}
-                        />
-                    ) : (
-                        <Checkbox
-                            status={task.isCompleted ? 'checked' : 'unchecked'}
-                            onPress={() => toggleTask(task.id)}
-                        />
-                    )}
-                    <View style={styles.taskTextContainer}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Text
-                                style={[
-                                    styles.taskTitle,
-                                    task.isCompleted && styles.completedTask,
-                                ]}
-                                onPress={() => {
-                                    if (isSelectionMode) {
-                                        toggleSelection(task.id);
-                                    } else {
-                                        openEditDialog(task);
-                                    }
-                                }}
-                            >
-                                {task.title}
-                            </Text>
-                            {task.estimatedTime && (
-                                <Text style={styles.timeBadgeSmall}>
-                                    {task.estimatedTime}m
-                                </Text>
-                            )}
-                            {task.notes && <IconButton icon="note-text-outline" size={14} style={{ margin: 0 }} />}
-                        </View>
-                        {/* Tags Display */}
-                        {task.tags && task.tags.length > 0 && (
-                            <View style={styles.cardTagsRow}>
-                                {task.tags.map(tagId => {
-                                    const tagDef = safeTags.find(t => t.id === tagId);
-                                    if (!tagDef) return null;
-                                    return (
-                                        <View key={tagId} style={[styles.miniTag, { backgroundColor: tagDef.color }]}>
-                                            <Text style={styles.miniTagText}>{tagDef.name}</Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        )}
-                    </View>
-                    {!isSelectionMode && (
-                        <IconButton
-                            icon="trash-can-outline"
-                            size={16}
-                            onPress={() => {
-                                Alert.alert(
-                                    "Delete Task",
-                                    "Are you sure you want to delete this task?",
-                                    [
-                                        { text: "Cancel", style: "cancel" },
-                                        { text: "Delete", style: "destructive", onPress: () => deleteTask(task.id) }
-                                    ]
-                                );
-                            }}
-                        />
-                    )}
-                </Card.Content>
-            </Card>
+            />
         );
     };
 
@@ -348,6 +284,7 @@ export default function WeeklyScreen() {
                 initialEstimatedTime={editingTask?.estimatedTime}
                 initialNotes={editingTask?.notes}
                 initialTags={editingTask?.tags}
+                initialSubtasks={editingTask?.subtasks}
                 title={editingTask ? "Edit Task" : "Add Task"}
                 submitLabel={editingTask ? "Update" : "Add"}
                 taskId={editingTask?.id}

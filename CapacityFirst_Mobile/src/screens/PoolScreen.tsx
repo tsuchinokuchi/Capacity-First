@@ -4,15 +4,16 @@ import { Text, Checkbox, Card, IconButton, FAB, useTheme, Chip, Button, Portal, 
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskStore } from '../store/useTaskStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { Task } from '../types/Task';
+import { Task, Subtask } from '../types/Task';
 import TaskFormDialog from '../components/TaskFormDialog';
+import TaskItem from '../components/TaskItem';
 import SettingsDialog from '../components/SettingsDialog';
 import { toISODateString } from '../utils/DateUtils';
 import { AppTheme } from '../theme/theme';
 
 export default function PoolScreen() {
     const theme = useTheme<AppTheme>();
-    const { tasks, addTask, updateTask, updateTasks, toggleTask, deleteTask } = useTaskStore();
+    const { tasks, addTask, updateTask, updateTasks, toggleTask, toggleSubtask, deleteTask } = useTaskStore();
     const { dailyCapacityMinutes, tags, sortConfigs } = useSettingsStore();
 
     // Ensure safe default
@@ -126,17 +127,18 @@ export default function PoolScreen() {
         setDialogVisible(true);
     };
 
-    const handleSubmit = (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[]) => {
+    const handleSubmit = (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[]) => {
         if (editingTask) {
             updateTask(editingTask.id, {
                 title,
                 scheduledDate: date ? toISODateString(date) : undefined,
                 estimatedTime,
                 notes,
-                tags
+                tags,
+                subtasks
             });
         } else {
-            addTask(title, date ? toISODateString(date) : undefined, estimatedTime, repeatRule, repeatConfig, notes, tags);
+            addTask(title, date ? toISODateString(date) : undefined, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks);
         }
     };
 
@@ -144,90 +146,23 @@ export default function PoolScreen() {
         const isSelected = selectedTaskIds.includes(item.id);
 
         return (
-            <Card style={[
-                styles.card,
-                item.isCompleted && { opacity: 0.6, backgroundColor: '#f0f0f0' },
-                isSelected && { backgroundColor: theme.colors.primaryContainer + '40', borderColor: theme.colors.primary, borderWidth: 1 }
-            ]}
-                onLongPress={() => handleLongPress(item.id)}
+            <TaskItem
+                task={item}
+                tags={safeTags}
+                isSelectionMode={isSelectionMode}
+                isSelected={isSelected}
+                onToggle={toggleTask}
+                onSubtaskToggle={toggleSubtask}
+                onSelect={toggleSelection}
+                onLongPress={handleLongPress}
                 onPress={() => {
                     if (isSelectionMode) {
                         toggleSelection(item.id);
                     } else {
-                        // Standard tap - maybe open preview? User requested "Tap to Edit" logic to be replaced?
-                        // "タスク編集を長押しじゃないようにして（タップにして）" -> User wants Tap to Edit.
-                        // Existing WAS Tap to Edit (on Title) but now we make whole card tap to edit?
-                        // Yes, except in Selection Mode.
                         openEditDialog(item);
                     }
                 }}
-            >
-                <Card.Content style={styles.cardContent}>
-                    {/* Checkbox Behavior Change */}
-                    {isSelectionMode ? (
-                        <Checkbox
-                            status={isSelected ? 'checked' : 'unchecked'}
-                            onPress={() => toggleSelection(item.id)}
-                            color={theme.colors.primary}
-                        />
-                    ) : (
-                        <Checkbox
-                            status={item.isCompleted ? 'checked' : 'unchecked'}
-                            onPress={() => toggleTask(item.id)}
-                        />
-                    )}
-
-                    <View style={styles.taskTextWrapper}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' }}>
-                            <Text
-                                variant="bodyLarge"
-                                style={[
-                                    styles.taskTitle,
-                                    item.isCompleted && styles.completedTask,
-                                ]}
-                            >
-                                {item.title}
-                            </Text>
-                            {item.estimatedTime && (
-                                <Text style={styles.timeBadge}>
-                                    {item.estimatedTime}m
-                                </Text>
-                            )}
-                            {item.notes && <IconButton icon="note-text-outline" size={16} style={{ margin: 0 }} />}
-                        </View>
-                        {/* Tags Display */}
-                        {item.tags && item.tags.length > 0 && (
-                            <View style={styles.cardTagsRow}>
-                                {item.tags.map(tagId => {
-                                    const tagDef = safeTags.find(t => t.id === tagId);
-                                    if (!tagDef) return null;
-                                    return (
-                                        <View key={tagId} style={[styles.miniTag, { backgroundColor: tagDef.color }]}>
-                                            <Text style={styles.miniTagText}>{tagDef.name}</Text>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        )}
-                    </View>
-                    {!isSelectionMode && (
-                        <IconButton
-                            icon="trash-can-outline"
-                            size={20}
-                            onPress={() => {
-                                Alert.alert(
-                                    "Delete Task",
-                                    "Are you sure you want to delete this task?",
-                                    [
-                                        { text: "Cancel", style: "cancel" },
-                                        { text: "Delete", style: "destructive", onPress: () => deleteTask(item.id) }
-                                    ]
-                                );
-                            }}
-                        />
-                    )}
-                </Card.Content>
-            </Card>
+            />
         );
     };
 
@@ -306,6 +241,7 @@ export default function PoolScreen() {
                 initialEstimatedTime={editingTask?.estimatedTime}
                 initialNotes={editingTask?.notes}
                 initialTags={editingTask?.tags}
+                initialSubtasks={editingTask?.subtasks}
                 title={editingTask ? "Edit Task" : "Add to Pool"}
                 submitLabel={editingTask ? "Update" : "Add"}
                 taskId={editingTask?.id}
