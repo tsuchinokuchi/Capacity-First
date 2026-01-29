@@ -13,7 +13,7 @@ import { AppTheme } from '../theme/theme';
 
 export default function DailyScreen() {
     const theme = useTheme<AppTheme>();
-    const { tasks, addTask, updateTask, updateTasks, toggleTask, toggleSubtask, deleteTask, replenishTasks } = useTaskStore();
+    const { tasks, addTask, updateTask, updateTasks, toggleTask, toggleSubtask, deleteTask, replenishTasks, projects } = useTaskStore();
     const { dailyCapacityMinutes, tags, sortConfigs } = useSettingsStore();
 
     useEffect(() => {
@@ -45,6 +45,14 @@ export default function DailyScreen() {
         !t.isCompleted &&
         t.scheduledDate &&
         t.scheduledDate < todayStr
+    );
+
+    // Filter for Someday / Pool (Incomplete, No Date, Not Template)
+    const somedayTasks = tasks.filter(t =>
+        !t.isCompleted &&
+        !t.scheduledDate &&
+        // If has project, ensure it's not a template project
+        (!t.projectId || projects.find(p => p.id === t.projectId)?.status !== 'template')
     );
 
     // Calculate Total Estimated Time
@@ -142,7 +150,7 @@ export default function DailyScreen() {
         setDialogVisible(true);
     };
 
-    const handleSubmit = (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[]) => {
+    const handleSubmit = (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[], projectId?: string) => {
         if (editingTask) {
             updateTask(editingTask.id, {
                 title,
@@ -150,15 +158,17 @@ export default function DailyScreen() {
                 estimatedTime,
                 notes,
                 tags,
-                subtasks
+                subtasks,
+                projectId
             });
         } else {
-            addTask(title, date ? toISODateString(date) : undefined, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks);
+            addTask(title, date ? toISODateString(date) : undefined, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks, projectId);
         }
     };
 
     const renderItem = ({ item }: { item: Task }) => {
         const isSelected = selectedTaskIds.includes(item.id);
+        const project = item.projectId ? projects.find(p => p.id === item.projectId) : undefined;
 
         return (
             <TaskItem
@@ -177,6 +187,7 @@ export default function DailyScreen() {
                         openEditDialog(item);
                     }
                 }}
+                project={project}
             />
         );
     };
@@ -202,28 +213,42 @@ export default function DailyScreen() {
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+
                 ListHeaderComponent={
-                    overdueTasks.length > 0 ? (
-                        <View style={{ marginBottom: 16 }}>
-                            <List.Accordion
-                                title={`Overdue Tasks (${overdueTasks.length})`}
-                                titleStyle={{ color: theme.colors.error, fontWeight: 'bold' }}
-                                left={props => <List.Icon {...props} icon="alert-circle-outline" color={theme.colors.error} />}
-                                style={{ backgroundColor: theme.colors.errorContainer + '20', borderRadius: 8 }}
-                            >
-                                {overdueTasks.map(task => (
-                                    <View key={task.id} style={{ paddingLeft: 16 }}>
-                                        {/* Reuse renderItem logic lightly or just render Component directly? 
-                                            FlatList renderItem expects {item}, so we can reuse renderItem({item: task}) 
-                                            BUT renderItem returns a Component, we can call it as function if we are careful.
-                                            Better to just inline render a simpler version or call renderItem.
-                                        */}
-                                        {renderItem({ item: task })}
-                                    </View>
-                                ))}
-                            </List.Accordion>
-                        </View>
-                    ) : null
+                    <View>
+                        {overdueTasks.length > 0 && (
+                            <View style={{ marginBottom: 16 }}>
+                                <List.Accordion
+                                    title={`Overdue Tasks (${overdueTasks.length})`}
+                                    titleStyle={{ color: theme.colors.error, fontWeight: 'bold' }}
+                                    left={props => <List.Icon {...props} icon="alert-circle-outline" color={theme.colors.error} />}
+                                    style={{ backgroundColor: theme.colors.errorContainer + '20', borderRadius: 8 }}
+                                >
+                                    {overdueTasks.map(task => (
+                                        <View key={task.id} style={{ paddingLeft: 16 }}>
+                                            {renderItem({ item: task })}
+                                        </View>
+                                    ))}
+                                </List.Accordion>
+                            </View>
+                        )}
+                        {somedayTasks.length > 0 && (
+                            <View style={{ marginBottom: 16 }}>
+                                <List.Accordion
+                                    title={`Someday / Pool (${somedayTasks.length})`}
+                                    titleStyle={{ color: theme.colors.secondary, fontWeight: 'bold' }}
+                                    left={props => <List.Icon {...props} icon="inbox" color={theme.colors.secondary} />}
+                                    style={{ backgroundColor: theme.colors.secondaryContainer + '20', borderRadius: 8 }}
+                                >
+                                    {somedayTasks.map(task => (
+                                        <View key={task.id} style={{ paddingLeft: 16 }}>
+                                            {renderItem({ item: task })}
+                                        </View>
+                                    ))}
+                                </List.Accordion>
+                            </View>
+                        )}
+                    </View>
                 }
                 ListEmptyComponent={
                     <Text style={styles.emptyText}>No tasks for today. {'\n'}Relax or add a new one!</Text>
@@ -251,6 +276,7 @@ export default function DailyScreen() {
                 title={editingTask ? "Edit Task" : "Add Task"}
                 submitLabel={editingTask ? "Update" : "Add"}
                 taskId={editingTask?.id}
+                initialProjectId={editingTask?.projectId}
                 validateCapacity={(date, newEstimatedTime) => {
                     // Check logic
                     const dateStr = toISODateString(date);

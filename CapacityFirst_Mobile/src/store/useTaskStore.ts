@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Task, RepeatConfig, Subtask } from '../types/Task';
+import { Task, RepeatConfig, Subtask, Project } from '../types/Task';
 
 // Simple ID generator to avoid external dependencies
 const generateId = () => {
@@ -10,7 +10,7 @@ const generateId = () => {
 
 interface TaskState {
     tasks: Task[];
-    addTask: (title: string, scheduledDate?: string, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: RepeatConfig, notes?: string, tags?: string[], subtasks?: Subtask[]) => void;
+    addTask: (title: string, scheduledDate?: string, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: RepeatConfig, notes?: string, tags?: string[], subtasks?: Subtask[], projectId?: string, projectStepOrder?: number) => void;
     updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void;
     updateTasks: (ids: string[], updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => void;
     toggleTask: (id: string) => void;
@@ -18,7 +18,14 @@ interface TaskState {
     deleteTask: (id: string) => void;
     clearAllTasks: () => void;
     replenishTasks: () => void;
+
     stopRecurrence: (signature: string) => void;
+
+    // Project Actions
+    projects: Project[];
+    addProject: (project: Partial<Project>, fromTemplateId?: string) => void;
+    updateProject: (id: string, updates: Partial<Project>) => void;
+    deleteProject: (id: string) => void;
 }
 
 export const getTaskSignature = (task: Task): string | null => {
@@ -36,7 +43,8 @@ export const useTaskStore = create<TaskState>()(
     persist(
         (set) => ({
             tasks: [],
-            addTask: (title, scheduledDate, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks) =>
+            projects: [],
+            addTask: (title, scheduledDate, estimatedTime, repeatRule, repeatConfig, notes, tags, subtasks, projectId, projectStepOrder) =>
                 set((state) => {
                     const newTasks: Task[] = [];
                     const baseDate = scheduledDate ? new Date(scheduledDate) : new Date();
@@ -72,7 +80,10 @@ export const useTaskStore = create<TaskState>()(
                         repeatConfig,
                         notes,
                         tags,
+
                         subtasks,
+                        projectId,
+                        projectStepOrder
                     });
 
                     if (config && scheduledDate) {
@@ -309,6 +320,52 @@ export const useTaskStore = create<TaskState>()(
                     }
                     return t;
                 })
+            })),
+
+            // Project Implementation
+            addProject: (projectData, fromTemplateId) => set((state) => {
+                const newProject: Project = {
+                    id: generateId(),
+                    title: projectData.title || 'New Project',
+                    description: projectData.description,
+                    color: projectData.color,
+                    status: projectData.status || 'active',
+                    createdAt: new Date().toISOString(),
+                };
+
+                let additionalTasks: Task[] = [];
+
+                // Copy tasks from template
+                if (fromTemplateId && fromTemplateId !== '') {
+                    // Find tasks belonging to the template project
+                    const templateTasks = state.tasks.filter(t => t.projectId === fromTemplateId);
+
+                    if (templateTasks.length > 0) {
+                        additionalTasks = templateTasks.map(t => ({
+                            ...t,
+                            id: generateId(),
+                            projectId: newProject.id, // Link to new project
+                            scheduledDate: undefined, // Reset date? Or keep relative? Reset for now.
+                            isCompleted: false,
+                            createdAt: new Date().toISOString(),
+                        }));
+                    }
+                }
+
+                return {
+                    projects: [...state.projects, newProject],
+                    tasks: [...state.tasks, ...additionalTasks]
+                };
+            }),
+
+            updateProject: (id, updates) => set((state) => ({
+                projects: state.projects.map(p => p.id === id ? { ...p, ...updates } : p)
+            })),
+
+            deleteProject: (id) => set((state) => ({
+                projects: state.projects.filter(p => p.id !== id),
+                // Unlink tasks instead of deleting them
+                tasks: state.tasks.map(t => t.projectId === id ? { ...t, projectId: undefined } : t)
             })),
         }),
         {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Dialog, Portal, Button, Text, TextInput, Divider, useTheme, Chip, IconButton, Switch } from 'react-native-paper';
+import { Dialog, Portal, Button, Text, TextInput, Divider, useTheme, Chip, IconButton, Switch, List, Checkbox } from 'react-native-paper';
 import { StyleSheet, View, Alert, ScrollView, TouchableOpacity, TextInput as NativeTextInput } from 'react-native';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { useTaskStore, getTaskSignature } from '../store/useTaskStore';
@@ -13,11 +13,13 @@ interface SettingsDialogProps {
 
 export default function SettingsDialog({ visible, onDismiss }: SettingsDialogProps) {
     const theme = useTheme<AppTheme>();
-    const { dailyCapacityMinutes, tags, setDailyCapacity, addTag, deleteTag, sortConfigs, updateSortConfig, moveTagPriority } = useSettingsStore();
-    const { tasks, deleteTask, stopRecurrence } = useTaskStore();
+    const {
+        dailyCapacityMinutes, tags, setDailyCapacity, addTag, deleteTag, sortConfigs, updateSortConfig, moveTagPriority
+    } = useSettingsStore();
+    const { tasks, deleteTask, stopRecurrence, projects, addProject, deleteProject } = useTaskStore();
 
     // Navigation State
-    const [currentSection, setCurrentSection] = useState<'main' | 'general' | 'tags' | 'sorting' | 'recurring'>('main');
+    const [currentSection, setCurrentSection] = useState<'main' | 'general' | 'tags' | 'sorting' | 'recurring' | 'templates'>('main');
 
     // Ensure safe default if store is not populated
     const safeSortConfigs = sortConfigs || [];
@@ -26,8 +28,11 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
     const [newTagName, setNewTagName] = useState('');
     const inputRef = useRef<any>(null);
     const [selectedColor, setSelectedColor] = useState('#6200ee');
+    const [newTemplateTitle, setNewTemplateTitle] = useState('');
 
     const PRESET_COLORS = ['#6200ee', '#03dac6', '#b00020', '#ff9800', '#2196f3', '#4caf50', '#9c27b0'];
+
+    const templates = projects.filter(p => p.status === 'template');
 
     useEffect(() => {
         if (visible) {
@@ -58,16 +63,16 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
         }
     };
 
-    const handleSortToggle = (index: number) => {
-        const newConfigs = safeSortConfigs.map((config, i) =>
-            i === index ? { ...config, enabled: !config.enabled } : config
+    const handleToggleSort = (field: string) => {
+        const newConfigs = safeSortConfigs.map(config =>
+            config.field === field ? { ...config, enabled: !config.enabled } : config
         );
         updateSortConfig(newConfigs);
     };
 
-    const handleSortOrderToggle = (index: number) => {
-        const newConfigs = safeSortConfigs.map((config, i) =>
-            i === index ? { ...config, order: (config.order === 'asc' ? 'desc' : 'asc') as 'asc' | 'desc' } : config
+    const handleToggleSortDirection = (field: string) => {
+        const newConfigs = safeSortConfigs.map(config =>
+            config.field === field ? { ...config, order: (config.order === 'asc' ? 'desc' : 'asc') as 'asc' | 'desc' } : config
         );
         updateSortConfig(newConfigs);
     };
@@ -154,6 +159,12 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
                 <IconButton icon="chevron-right" style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
             <Divider />
+            <TouchableOpacity style={styles.menuItem} onPress={() => setCurrentSection('templates')}>
+                <IconButton icon="content-copy" />
+                <Text variant="bodyLarge">Template Management</Text>
+                <IconButton icon="chevron-right" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+            <Divider />
             <TouchableOpacity style={styles.menuItem} onPress={handleClearData}>
                 <IconButton icon="delete-forever" iconColor={theme.colors.error} />
                 <Text variant="bodyLarge" style={{ color: theme.colors.error }}>Delete All Data</Text>
@@ -198,6 +209,52 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
         );
     };
 
+    const renderTemplates = () => (
+
+        <View>
+            <Text variant="bodyMedium" style={{ marginBottom: 16 }}>
+                Manage project templates. Use these to quickly create projects with predefined steps.
+            </Text>
+            <ScrollView style={{ maxHeight: 300 }}>
+                {templates.map(t => (
+                    <View key={t.id} style={styles.tagRow}>
+                        <Text style={{ flex: 1 }}>{t.title}</Text>
+                        <IconButton icon="delete" size={20} onPress={() => deleteProject(t.id)} />
+                    </View>
+                ))}
+                {templates.length === 0 && <Text style={styles.hint}>No templates created yet.</Text>}
+            </ScrollView>
+
+            <Divider style={{ marginVertical: 16 }} />
+
+            <View style={styles.tagInputContainer}>
+                <TextInput
+                    label="New Template Name"
+                    value={newTemplateTitle}
+                    onChangeText={setNewTemplateTitle}
+                    style={{ flex: 1, marginRight: 8, height: 40, fontSize: 14 }}
+                    mode="outlined"
+                    dense
+                />
+                <IconButton
+                    icon="plus"
+                    mode="contained"
+                    containerColor={theme.colors.primaryContainer}
+                    iconColor={theme.colors.onPrimaryContainer}
+                    onPress={() => {
+                        if (newTemplateTitle.trim()) {
+                            addProject({ title: newTemplateTitle.trim(), status: 'template' });
+                            setNewTemplateTitle('');
+                        }
+                    }}
+                />
+            </View>
+            <Text variant="bodySmall" style={{ color: theme.colors.outline, marginTop: 4 }}>
+                * Add steps to templates later via Project details (Select 'Template' status filter).
+            </Text>
+        </View>
+    );
+
     return (
         <Portal>
             <Dialog visible={visible} onDismiss={onDismiss} style={{ maxHeight: '80%' }}>
@@ -208,7 +265,8 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
                             <Text variant="titleLarge">{
                                 currentSection === 'general' ? 'General' :
                                     currentSection === 'tags' ? 'Tags' :
-                                        currentSection === 'sorting' ? 'Sorting' : 'Recurring Rules'
+                                        currentSection === 'sorting' ? 'Sorting' :
+                                            currentSection === 'recurring' ? 'Recurring Rules' : 'Templates'
                             }</Text>
                         </View>
                     }
@@ -257,14 +315,14 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
                                             </Text>
                                             <Switch
                                                 value={config.enabled}
-                                                onValueChange={() => handleSortToggle(index)}
+                                                onValueChange={() => handleToggleSort(config.field)}
                                                 style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
                                             />
                                             {config.enabled && (
                                                 <IconButton
                                                     icon={config.order === 'asc' ? "sort-ascending" : "sort-descending"}
                                                     size={20}
-                                                    onPress={() => handleSortOrderToggle(index)}
+                                                    onPress={() => handleToggleSortDirection(config.field)}
                                                 />
                                             )}
                                         </View>
@@ -357,6 +415,8 @@ export default function SettingsDialog({ visible, onDismiss }: SettingsDialogPro
                     )}
 
                     {currentSection === 'recurring' && renderRecurringRules()}
+
+                    {currentSection === 'templates' && renderTemplates()}
 
                 </Dialog.Content>
                 <Dialog.Actions>

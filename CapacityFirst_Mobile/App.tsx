@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from './src/theme/theme';
 
 /* Screens */
-import PoolScreen from './src/screens/PoolScreen';
+import ProjectScreen from './src/screens/ProjectScreen';
 import DailyScreen from './src/screens/DailyScreen';
 import WeeklyScreen from './src/screens/WeeklyScreen';
 
@@ -17,7 +17,7 @@ export default function App() {
         <SafeAreaView style={styles.container}>
           <StatusBar barStyle="dark-content" />
           <PagerView style={styles.pagerView} initialPage={1}>
-            <PoolScreen key="0" />
+            <ProjectScreen key="0" />
             <DailyScreen key="1" />
             <WeeklyScreen key="2" />
           </PagerView>

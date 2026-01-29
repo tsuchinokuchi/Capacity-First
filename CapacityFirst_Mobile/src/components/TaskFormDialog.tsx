@@ -5,13 +5,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { formatDate } from '../utils/DateUtils';
 import { AppTheme } from '../theme/theme';
 import { useSettingsStore } from '../store/useSettingsStore';
+import { useTaskStore } from '../store/useTaskStore';
 import { Chip, Checkbox } from 'react-native-paper'; // Import Chip here too
 import { Subtask, Task } from '../types/Task';
 
 interface TaskFormDialogProps {
     visible: boolean;
     onDismiss: () => void;
-    onSubmit: (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[]) => void;
+    onSubmit: (title: string, date?: Date, estimatedTime?: number, repeatRule?: 'daily' | 'weekly', repeatConfig?: any, notes?: string, tags?: string[], subtasks?: Subtask[], projectId?: string) => void;
     initialTitle?: string;
     initialDate?: Date;
     initialEstimatedTime?: number;
@@ -22,6 +23,7 @@ interface TaskFormDialogProps {
     title?: string;
     validateCapacity?: (date: Date, minutes: number) => boolean;
     taskId?: string;
+    initialProjectId?: string;
 }
 
 export default function TaskFormDialog({
@@ -37,10 +39,15 @@ export default function TaskFormDialog({
     submitLabel = 'Add',
     title = 'Add Task',
     validateCapacity,
-    taskId
+    taskId,
+    initialProjectId
 }: TaskFormDialogProps) {
     const theme = useTheme<AppTheme>();
     const { tags } = useSettingsStore();
+    const { projects } = useTaskStore();
+
+    // Filter active projects
+    const activeProjects = projects.filter(p => p.status === 'active');
 
     const [taskTitle, setTaskTitle] = useState(initialTitle);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(initialDate);
@@ -48,6 +55,7 @@ export default function TaskFormDialog({
     const [notes, setNotes] = useState(initialNotes);
     const [selectedTags, setSelectedTags] = useState<string[]>(initialTags);
     const [subtasks, setSubtasks] = useState<Subtask[]>(initialSubtasks);
+    const [selectedProjectId, setSelectedProjectId] = useState<string | undefined>(initialProjectId);
     const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
 
     const [subtaskInputKey, setSubtaskInputKey] = useState(0);
@@ -80,6 +88,7 @@ export default function TaskFormDialog({
             setCustomFreq('weekly');
             setCustomInterval('1');
             setCustomDays(dateToUse ? [dateToUse.getDay()] : []);
+            setSelectedProjectId(initialProjectId);
         }
     }, [visible, taskId]);
 
@@ -142,7 +151,7 @@ export default function TaskFormDialog({
             rule = customFreq;
         }
 
-        onSubmit(taskTitle, selectedDate, estimatedTime, rule, config, notes, selectedTags, subtasks);
+        onSubmit(taskTitle, selectedDate, estimatedTime, rule, config, notes, selectedTags, subtasks, selectedProjectId);
         onDismiss();
     };
 
@@ -350,6 +359,31 @@ export default function TaskFormDialog({
                                     onChange={onCustomTimeChange}
                                 />
                             )}
+
+                            {/* Project Selection */}
+                            <Text variant="bodyMedium" style={styles.sectionLabel}>Project</Text>
+                            <View style={styles.tagsContainer}>
+                                <Chip
+                                    selected={!selectedProjectId}
+                                    onPress={() => setSelectedProjectId(undefined)}
+                                    style={styles.tagChip}
+                                    mode="outlined"
+                                >
+                                    None
+                                </Chip>
+                                {activeProjects.map(proj => (
+                                    <Chip
+                                        key={proj.id}
+                                        selected={selectedProjectId === proj.id}
+                                        onPress={() => setSelectedProjectId(proj.id)}
+                                        style={[styles.tagChip, selectedProjectId === proj.id && { backgroundColor: (proj.color || theme.colors.primary) + '40' }]}
+                                        textStyle={{ color: selectedProjectId === proj.id ? 'black' : (proj.color || theme.colors.primary) }}
+                                        mode="outlined"
+                                    >
+                                        {proj.title}
+                                    </Chip>
+                                ))}
+                            </View>
 
                             {/* Tags Selection */}
                             {tags.length > 0 && (

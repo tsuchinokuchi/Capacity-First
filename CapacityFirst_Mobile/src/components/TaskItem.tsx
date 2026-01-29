@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Card, Text, IconButton, Checkbox, useTheme } from 'react-native-paper';
-import { Task, Tag } from '../types/Task';
+import { Task, Tag, Project } from '../types/Task';
 import { AppTheme } from '../theme/theme';
 
 interface TaskItemProps {
@@ -14,6 +14,7 @@ interface TaskItemProps {
     onSelect: (id: string) => void;
     onLongPress: (id: string) => void;
     onPress: (task: Task) => void;
+    project?: Project;
 }
 
 export default function TaskItem({
@@ -25,7 +26,8 @@ export default function TaskItem({
     onSubtaskToggle,
     onSelect,
     onLongPress,
-    onPress
+    onPress,
+    project
 }: TaskItemProps) {
     const theme = useTheme<AppTheme>();
     const [expanded, setExpanded] = useState(false);
@@ -58,6 +60,13 @@ export default function TaskItem({
 
                     {/* Task Title & Details */}
                     <View style={styles.taskTextContainer}>
+                        {project && (
+                            <View style={{ alignSelf: 'flex-start', backgroundColor: (project.color || theme.colors.primary) + '20', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 4 }}>
+                                <Text style={{ color: project.color || theme.colors.primary, fontSize: 10, fontWeight: 'bold' }}>
+                                    {project.title}
+                                </Text>
+                            </View>
+                        )}
                         <View style={styles.titleRow}>
                             <Text
                                 variant="bodyLarge"
